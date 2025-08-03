@@ -1,0 +1,139 @@
+CRITICAL - 2025-01-16 07:01:58 --> TypeError: App\Controllers\Home::index(): Return value must be of type string, none returned
+[Method: GET, Route: /]
+in APPPATH/Controllers/Home.php on line 11.
+ 1 SYSTEMPATH/CodeIgniter.php(933): App\Controllers\Home->index()
+ 2 SYSTEMPATH/CodeIgniter.php(509): CodeIgniter\CodeIgniter->runController()
+ 3 SYSTEMPATH/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+ 4 SYSTEMPATH/Boot.php(334): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+ 6 FCPATH/index.php(56): CodeIgniter\Boot::bootWeb()
+CRITICAL - 2025-01-16 07:06:59 --> Error: Class "App\Filters\Services" not found
+[Method: GET, Route: api/produk]
+in APPPATH/Filters/BearerAuth.php on line 16.
+ 1 SYSTEMPATH/Filters/Filters.php(203): App\Filters\BearerAuth->before()
+ 2 SYSTEMPATH/Filters/Filters.php(184): CodeIgniter\Filters\Filters->runBefore()
+ 3 SYSTEMPATH/CodeIgniter.php(481): CodeIgniter\Filters\Filters->run()
+ 4 SYSTEMPATH/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+ 5 SYSTEMPATH/Boot.php(334): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+ 7 FCPATH/index.php(56): CodeIgniter\Boot::bootWeb()
+CRITICAL - 2025-01-16 07:20:17 --> ErrorException: New expressions are not supported in this context
+[Method: GET, Route: api/produk]
+in APPPATH/Controllers/Produk.php on line 11.
+ 1 [internal function]: CodeIgniter\Debug\Exceptions->shutdownHandler()
+ERROR - 2025-01-16 13:40:00 --> mysqli_sql_exception: Table 'u787042927_payooDB.produkx' doesn't exist in /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/MySQLi/Connection.php:312
+Stack trace:
+#0 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/MySQLi/Connection.php(312): mysqli->query()
+#1 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/BaseConnection.php(734): CodeIgniter\Database\MySQLi\Connection->execute()
+#2 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/BaseConnection.php(648): CodeIgniter\Database\BaseConnection->simpleQuery()
+#3 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/BaseBuilder.php(1644): CodeIgniter\Database\BaseConnection->query()
+#4 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+#5 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/BaseModel.php(675): CodeIgniter\Model->doFindAll()
+#6 /home/u787042927/domains/netgen.id/public_html/payoo/engines/app/Controllers/Produk.php(20): CodeIgniter\BaseModel->findAll()
+#7 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/CodeIgniter.php(933): App\Controllers\Produk->index()
+#8 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/CodeIgniter.php(509): CodeIgniter\CodeIgniter->runController()
+#9 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+#10 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Boot.php(334): CodeIgniter\CodeIgniter->run()
+#11 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+#12 /home/u787042927/domains/netgen.id/public_html/payoo/index.php(56): CodeIgniter\Boot::bootWeb()
+#13 {main}
+CRITICAL - 2025-01-16 13:40:00 --> CodeIgniter\Database\Exceptions\DatabaseException: Table 'u787042927_payooDB.produkx' doesn't exist
+[Method: GET, Route: api/produk]
+in SYSTEMPATH/Database/BaseConnection.php on line 688.
+ 1 SYSTEMPATH/Database/BaseBuilder.php(1644): CodeIgniter\Database\BaseConnection->query()
+ 2 SYSTEMPATH/Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+ 3 SYSTEMPATH/BaseModel.php(675): CodeIgniter\Model->doFindAll()
+ 4 APPPATH/Controllers/Produk.php(20): CodeIgniter\BaseModel->findAll()
+ 5 SYSTEMPATH/CodeIgniter.php(933): App\Controllers\Produk->index()
+ 6 SYSTEMPATH/CodeIgniter.php(509): CodeIgniter\CodeIgniter->runController()
+ 7 SYSTEMPATH/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+ 8 SYSTEMPATH/Boot.php(334): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+10 FCPATH/index.php(56): CodeIgniter\Boot::bootWeb()
+CRITICAL - 2025-01-16 13:40:00 --> [Caused by] CodeIgniter\Database\Exceptions\DatabaseException: Table 'u787042927_payooDB.produkx' doesn't exist
+in SYSTEMPATH/Database/MySQLi/Connection.php on line 317.
+ 1 SYSTEMPATH/Database/BaseConnection.php(734): CodeIgniter\Database\MySQLi\Connection->execute()
+ 2 SYSTEMPATH/Database/BaseConnection.php(648): CodeIgniter\Database\BaseConnection->simpleQuery()
+ 3 SYSTEMPATH/Database/BaseBuilder.php(1644): CodeIgniter\Database\BaseConnection->query()
+ 4 SYSTEMPATH/Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+ 5 SYSTEMPATH/BaseModel.php(675): CodeIgniter\Model->doFindAll()
+ 6 APPPATH/Controllers/Produk.php(20): CodeIgniter\BaseModel->findAll()
+ 7 SYSTEMPATH/CodeIgniter.php(933): App\Controllers\Produk->index()
+ 8 SYSTEMPATH/CodeIgniter.php(509): CodeIgniter\CodeIgniter->runController()
+ 9 SYSTEMPATH/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+10 SYSTEMPATH/Boot.php(334): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+12 FCPATH/index.php(56): CodeIgniter\Boot::bootWeb()
+CRITICAL - 2025-01-16 13:40:00 --> [Caused by] mysqli_sql_exception: Table 'u787042927_payooDB.produkx' doesn't exist
+in SYSTEMPATH/Database/MySQLi/Connection.php on line 312.
+ 1 SYSTEMPATH/Database/MySQLi/Connection.php(312): mysqli->query()
+ 2 SYSTEMPATH/Database/BaseConnection.php(734): CodeIgniter\Database\MySQLi\Connection->execute()
+ 3 SYSTEMPATH/Database/BaseConnection.php(648): CodeIgniter\Database\BaseConnection->simpleQuery()
+ 4 SYSTEMPATH/Database/BaseBuilder.php(1644): CodeIgniter\Database\BaseConnection->query()
+ 5 SYSTEMPATH/Model.php(286): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH/BaseModel.php(675): CodeIgniter\Model->doFindAll()
+ 7 APPPATH/Controllers/Produk.php(20): CodeIgniter\BaseModel->findAll()
+ 8 SYSTEMPATH/CodeIgniter.php(933): App\Controllers\Produk->index()
+ 9 SYSTEMPATH/CodeIgniter.php(509): CodeIgniter\CodeIgniter->runController()
+10 SYSTEMPATH/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+11 SYSTEMPATH/Boot.php(334): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+13 FCPATH/index.php(56): CodeIgniter\Boot::bootWeb()
+ERROR - 2025-01-16 13:40:22 --> mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '= '001122'' at line 3 in /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/MySQLi/Connection.php:312
+Stack trace:
+#0 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/MySQLi/Connection.php(312): mysqli->query()
+#1 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/BaseConnection.php(734): CodeIgniter\Database\MySQLi\Connection->execute()
+#2 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/BaseConnection.php(648): CodeIgniter\Database\BaseConnection->simpleQuery()
+#3 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Database/BaseBuilder.php(1644): CodeIgniter\Database\BaseConnection->query()
+#4 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Model.php(210): CodeIgniter\Database\BaseBuilder->get()
+#5 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/BaseModel.php(609): CodeIgniter\Model->doFind()
+#6 /home/u787042927/domains/netgen.id/public_html/payoo/engines/app/Controllers/Produk.php(31): CodeIgniter\BaseModel->find()
+#7 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/CodeIgniter.php(933): App\Controllers\Produk->show()
+#8 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/CodeIgniter.php(509): CodeIgniter\CodeIgniter->runController()
+#9 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+#10 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Boot.php(334): CodeIgniter\CodeIgniter->run()
+#11 /home/u787042927/domains/netgen.id/public_html/payoo/engines/system/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+#12 /home/u787042927/domains/netgen.id/public_html/payoo/index.php(56): CodeIgniter\Boot::bootWeb()
+#13 {main}
+CRITICAL - 2025-01-16 13:40:22 --> CodeIgniter\Database\Exceptions\DatabaseException: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '= '001122'' at line 3
+[Method: GET, Route: api/produk/001122]
+in SYSTEMPATH/Database/BaseConnection.php on line 688.
+ 1 SYSTEMPATH/Database/BaseBuilder.php(1644): CodeIgniter\Database\BaseConnection->query()
+ 2 SYSTEMPATH/Model.php(210): CodeIgniter\Database\BaseBuilder->get()
+ 3 SYSTEMPATH/BaseModel.php(609): CodeIgniter\Model->doFind()
+ 4 APPPATH/Controllers/Produk.php(31): CodeIgniter\BaseModel->find()
+ 5 SYSTEMPATH/CodeIgniter.php(933): App\Controllers\Produk->show()
+ 6 SYSTEMPATH/CodeIgniter.php(509): CodeIgniter\CodeIgniter->runController()
+ 7 SYSTEMPATH/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+ 8 SYSTEMPATH/Boot.php(334): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+10 FCPATH/index.php(56): CodeIgniter\Boot::bootWeb()
+CRITICAL - 2025-01-16 13:40:22 --> [Caused by] CodeIgniter\Database\Exceptions\DatabaseException: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '= '001122'' at line 3
+in SYSTEMPATH/Database/MySQLi/Connection.php on line 317.
+ 1 SYSTEMPATH/Database/BaseConnection.php(734): CodeIgniter\Database\MySQLi\Connection->execute()
+ 2 SYSTEMPATH/Database/BaseConnection.php(648): CodeIgniter\Database\BaseConnection->simpleQuery()
+ 3 SYSTEMPATH/Database/BaseBuilder.php(1644): CodeIgniter\Database\BaseConnection->query()
+ 4 SYSTEMPATH/Model.php(210): CodeIgniter\Database\BaseBuilder->get()
+ 5 SYSTEMPATH/BaseModel.php(609): CodeIgniter\Model->doFind()
+ 6 APPPATH/Controllers/Produk.php(31): CodeIgniter\BaseModel->find()
+ 7 SYSTEMPATH/CodeIgniter.php(933): App\Controllers\Produk->show()
+ 8 SYSTEMPATH/CodeIgniter.php(509): CodeIgniter\CodeIgniter->runController()
+ 9 SYSTEMPATH/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+10 SYSTEMPATH/Boot.php(334): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+12 FCPATH/index.php(56): CodeIgniter\Boot::bootWeb()
+CRITICAL - 2025-01-16 13:40:22 --> [Caused by] mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '= '001122'' at line 3
+in SYSTEMPATH/Database/MySQLi/Connection.php on line 312.
+ 1 SYSTEMPATH/Database/MySQLi/Connection.php(312): mysqli->query()
+ 2 SYSTEMPATH/Database/BaseConnection.php(734): CodeIgniter\Database\MySQLi\Connection->execute()
+ 3 SYSTEMPATH/Database/BaseConnection.php(648): CodeIgniter\Database\BaseConnection->simpleQuery()
+ 4 SYSTEMPATH/Database/BaseBuilder.php(1644): CodeIgniter\Database\BaseConnection->query()
+ 5 SYSTEMPATH/Model.php(210): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH/BaseModel.php(609): CodeIgniter\Model->doFind()
+ 7 APPPATH/Controllers/Produk.php(31): CodeIgniter\BaseModel->find()
+ 8 SYSTEMPATH/CodeIgniter.php(933): App\Controllers\Produk->show()
+ 9 SYSTEMPATH/CodeIgniter.php(509): CodeIgniter\CodeIgniter->runController()
+10 SYSTEMPATH/CodeIgniter.php(355): CodeIgniter\CodeIgniter->handleRequest()
+11 SYSTEMPATH/Boot.php(334): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH/Boot.php(67): CodeIgniter\Boot::runCodeIgniter()
+13 FCPATH/index.php(56): CodeIgniter\Boot::bootWeb()
