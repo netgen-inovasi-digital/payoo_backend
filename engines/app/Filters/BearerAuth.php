@@ -6,6 +6,8 @@ use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\Config\Services;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class BearerAuth implements FilterInterface
 {
@@ -27,7 +29,16 @@ class BearerAuth implements FilterInterface
 
     private function isValidToken($token)
     {
-        // Verifikasi token di sini (misalnya memeriksa apakah token valid)
-        return $token === 'Bearer 1cd0bf3e8022fb99af58b642014eb2de'; // Contoh validasi sederhana
+        $secret = getenv('JWT_SECRET'); // Ambil dari ENV
+        if (strpos($token, 'Bearer ') === 0) {
+            $jwt = substr($token, 7);
+            try {
+                $payload = JWT::decode($jwt, new Key($secret, 'HS256'));
+                return !empty($payload);
+            } catch (\Exception $e) {
+                return false;
+            }
+        }
+        return false;
     }
 }
