@@ -1,6 +1,7 @@
 <?php
 
 namespace Firebase\JWT;
+require_once APPPATH . 'Libraries/PhpJwt/JWTExceptionWithPayloadInterface.php';
 
 class ExpiredException extends \UnexpectedValueException implements JWTExceptionWithPayloadInterface
 {

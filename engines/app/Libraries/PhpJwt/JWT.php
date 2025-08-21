@@ -1,6 +1,7 @@
 <?php
 
 namespace Firebase\JWT;
+require_once APPPATH . 'Libraries/PhpJwt/ExpiredException.php';
 
 use ArrayAccess;
 use DateTime;

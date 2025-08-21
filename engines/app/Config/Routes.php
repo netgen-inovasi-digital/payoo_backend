@@ -7,9 +7,18 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 
-$routes->group('api', ['namespace' => 'App\Controllers',
-    'filter' => 'bearerAuth'], function ($routes) {
-		
+// Public Auth Routes (tanpa filter)
+$routes->group('api/auth', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->post('register', 'Auth::register');   // POST /api/auth/register
+    $routes->post('login', 'Auth::login');         // POST /api/auth/login
+});
+
+// Protected Routes (dengan filter bearerAuth)
+$routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth'], function ($routes) {
+    
+    // Auth Protected Routes
+    $routes->get('account/profile', 'Auth::profile'); // GET /api/auth/profile
+    
     // Routes untuk Produk
     $routes->get('produk', 'Produk::index');       // GET /api/produk
     $routes->get('produk/(:segment)', 'Produk::show/$1'); // GET /api/produk/{id}

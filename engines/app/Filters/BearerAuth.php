@@ -6,8 +6,7 @@ use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\Config\Services;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
+use Config\JWT as JWTConfig;
 
 class BearerAuth implements FilterInterface
 {
@@ -17,7 +16,10 @@ class BearerAuth implements FilterInterface
 
         if (!$token || !$this->isValidToken($token)) {
             return Services::response()
-                ->setJSON(['message' => 'Unauthorized'])
+                ->setJSON([
+                    'status' => 'error',
+                    'message' => 'Unauthorized - Invalid or missing token'
+                ])
                 ->setStatusCode(401);
         }
     }
@@ -29,15 +31,14 @@ class BearerAuth implements FilterInterface
 
     private function isValidToken($token)
     {
-        $secret = getenv('JWT_SECRET'); // Ambil dari ENV
+        $jwtConfig = new JWTConfig();
+        if (!$jwtConfig->secret) {
+            return false;
+        }
         if (strpos($token, 'Bearer ') === 0) {
             $jwt = substr($token, 7);
-            try {
-                $payload = JWT::decode($jwt, new Key($secret, 'HS256'));
-                return !empty($payload);
-            } catch (\Exception $e) {
-                return false;
-            }
+            $payload = jwt_decode($jwt, $jwtConfig->secret);
+            return !empty($payload) && isset($payload->exp) && $payload->exp > time();
         }
         return false;
     }
