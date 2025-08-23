@@ -15,16 +15,22 @@ $routes->group('api/auth', ['namespace' => 'App\Controllers'], function ($routes
 
 // Protected Routes (dengan filter bearerAuth)
 $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth'], function ($routes) {
-    
+
     // Auth Protected Routes
     $routes->get('account/profile', 'Auth::profile'); // GET /api/auth/profile
-    
+
     // Routes untuk Produk
-    $routes->get('produk', 'Produk::index');       // GET /api/produk
-    $routes->get('produk/(:segment)', 'Produk::show/$1'); // GET /api/produk/{id}
-    $routes->post('produk', 'Produk::create');     // POST /api/produk
-    $routes->put('produk/(:segment)', 'Produk::update/$1'); // PUT /api/produk/{id}
-    $routes->delete('produk/(:segment)', 'Produk::delete/$1'); // DELETE /api/produk/{id}
+    // $routes->get('produk', 'Produk::index');       // GET /api/produk
+    // $routes->get('produk/(:segment)', 'Produk::show/$1'); // GET /api/produk/{id}
+    // $routes->post('produk', 'Produk::create');     // POST /api/produk
+    // $routes->put('produk/(:segment)', 'Produk::update/$1'); // PUT /api/produk/{id}
+    // $routes->delete('produk/(:segment)', 'Produk::delete/$1'); // DELETE /api/produk/{id}
+
+    $routes->get('products', 'Product::index');                 // GET /api/products
+    $routes->get('products/(:segment)', 'Product::show/$1');    // GET /api/products/{id}
+    $routes->post('products', 'Product::create');               // POST /api/products
+    $routes->put('products/(:segment)', 'Product::update/$1');  // PUT /api/products/{id}
+    $routes->delete('products/(:segment)', 'Product::delete/$1'); // DELETE /api/products/{id}
 
     // Routes untuk Category (baru)
     $routes->get('categories', 'Category::index');                 // GET /api/categories
@@ -47,4 +53,3 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     $routes->put('compositions/(:segment)', 'Composition::update/$1');  // PUT /api/compositions/{id}
     $routes->delete('compositions/(:segment)', 'Composition::delete/$1'); // DELETE /api/compositions/{id}
 });
-
