@@ -6,8 +6,6 @@ use App\Controllers\BaseController;
 use App\Models\CategoryModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
-helper(['api_response_helper']);
-
 class Category extends BaseController
 {
     protected CategoryModel $model;

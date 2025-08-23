@@ -39,5 +39,12 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     $routes->post('shops', 'Shop::create');               // POST /api/shops
     $routes->put('shops/(:segment)', 'Shop::update/$1');  // PUT /api/shops/{id}
     $routes->delete('shops/(:segment)', 'Shop::delete/$1'); // DELETE /api/shops/{id}
+
+    // Routes untuk Compositions
+    $routes->get('compositions', 'Composition::index');                 // GET /api/compositions
+    $routes->get('compositions/(:segment)', 'Composition::show/$1');    // GET /api/compositions/{id}
+    $routes->post('compositions', 'Composition::create');               // POST /api/compositions
+    $routes->put('compositions/(:segment)', 'Composition::update/$1');  // PUT /api/compositions/{id}
+    $routes->delete('compositions/(:segment)', 'Composition::delete/$1'); // DELETE /api/compositions/{id}
 });
 

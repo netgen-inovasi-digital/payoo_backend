@@ -6,8 +6,6 @@ use App\Controllers\BaseController;
 use App\Models\ShopModel;
 use App\Models\UserModel;
 
-helper(['api_response_helper', 'jwt_helper']);
-
 class Shop extends BaseController
 {
     protected ShopModel $model;
