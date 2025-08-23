@@ -19,7 +19,15 @@ class Product extends BaseController
     // GET /api/products
     public function index()
     {
-        $products = $this->model->orderBy('id', 'DESC')->findAll();
+        $payload = $this->decodeToken();
+        if (!$payload) {
+            return api_respond_unauthorized('Invalid token');
+        }
+        $shopId = $payload->shop_id ?? null;
+        if (!$shopId) {
+            return api_respond_success([], 'No shop assigned');
+        }
+        $products = $this->model->where('shop_id', $shopId)->orderBy('id', 'DESC')->findAll();
         return api_respond_success($products, 'Product list');
     }
 
@@ -29,7 +37,12 @@ class Product extends BaseController
         if (!$this->isValidId($id)) {
             return api_respond_validation_error(['id' => 'Invalid id']);
         }
-        $product = $this->model->find($id);
+        $payload = $this->decodeToken();
+        if (!$payload) {
+            return api_respond_unauthorized('Invalid token');
+        }
+        $shopId = $payload->shop_id ?? null;
+        $product = $this->model->where('shop_id', $shopId)->find($id);
         if (!$product) {
             return api_respond_not_found('Product not found');
         }
@@ -48,9 +61,13 @@ class Product extends BaseController
         if (!$payload) {
             return api_respond_unauthorized('Invalid token');
         }
+        $shopId = $payload->shop_id ?? null;
+        if (!$shopId) {
+            return api_respond_validation_error(['shop_id' => 'No shop in token']);
+        }
 
         $data = [
-            'shop_id'       => (int) ($json->shop_id ?? 0),
+            'shop_id'       => (int) $shopId,
             'category_id'   => (int) ($json->category_id ?? 0),
             'name'          => trim($json->name ?? ''),
             'photo'         => trim($json->photo ?? ''),
@@ -83,10 +100,6 @@ class Product extends BaseController
         if (!$this->isValidId($id)) {
             return api_respond_validation_error(['id' => 'Invalid id']);
         }
-        $existing = $this->model->find($id);
-        if (!$existing) {
-            return api_respond_not_found('Product not found');
-        }
         $json = $this->request->getJSON();
         if (!$json) {
             return api_respond_error('Invalid JSON', 400);
@@ -96,9 +109,14 @@ class Product extends BaseController
         if (!$payload) {
             return api_respond_unauthorized('Invalid token');
         }
+        $shopId = $payload->shop_id ?? null;
+        $existing = $this->model->where('shop_id', $shopId)->find($id);
+        if (!$existing) {
+            return api_respond_not_found('Product not found');
+        }
 
         $data = [
-            'shop_id'       => isset($json->shop_id) ? (int)$json->shop_id : $existing['shop_id'],
+            'shop_id'       => $existing['shop_id'], // tidak boleh diubah lewat update
             'category_id'   => isset($json->category_id) ? (int)$json->category_id : $existing['category_id'],
             'name'          => isset($json->name) ? trim($json->name) : $existing['name'],
             'photo'         => isset($json->photo) ? trim($json->photo) : $existing['photo'],
@@ -129,7 +147,12 @@ class Product extends BaseController
         if (!$this->isValidId($id)) {
             return api_respond_validation_error(['id' => 'Invalid id']);
         }
-        $existing = $this->model->find($id);
+        $payload = $this->decodeToken();
+        if (!$payload) {
+            return api_respond_unauthorized('Invalid token');
+        }
+        $shopId = $payload->shop_id ?? null;
+        $existing = $this->model->where('shop_id', $shopId)->find($id);
         if (!$existing) {
             return api_respond_not_found('Product not found');
         }

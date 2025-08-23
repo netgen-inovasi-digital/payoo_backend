@@ -13,6 +13,7 @@ class CompositionModel extends Model
     protected $useSoftDeletes   = false; // migration tidak memiliki deleted_at
     protected $protectFields    = true;
     protected $allowedFields    = [
+        'shop_id',
         'name',
         'cost_price',
         'selling_price',
@@ -26,6 +27,7 @@ class CompositionModel extends Model
 
     protected array $casts = [
         'id'            => 'integer',
+        'shop_id'       => 'integer',
         'cost_price'    => 'float',
         'selling_price' => 'float',
     ];
@@ -40,6 +42,7 @@ class CompositionModel extends Model
 
     // Validation
     protected $validationRules = [
+        'shop_id'       => 'required|integer',
         'name'          => 'required|string|max_length[100]',
         'cost_price'    => 'required|decimal',
         'selling_price' => 'required|decimal',

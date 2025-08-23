@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use App\Models\ShopModel;
 use Config\JWT as JWTConfig;
 
 class Auth extends BaseController
@@ -76,6 +77,7 @@ class Auth extends BaseController
             'name' => $user['name'],
             'email' => $user['email'],
             'role' => $user['role'],
+            'shop_id' => $this->getShopIdByUserId($user['id'])
         ];
 
         try {
@@ -89,5 +91,12 @@ class Auth extends BaseController
         } catch (\Exception $e) {
             return api_respond_server_error('Failed to generate token');
         }
+    }
+
+    // ambil shop pertama milik user (jika ada) untuk dimasukkan ke payload
+    private function getShopIdByUserId($userId)
+    {
+        $shop = (new ShopModel())->where('user_id', $userId)->orderBy('id', 'ASC')->first();
+        return $shop['id'] ?? null;
     }
 }

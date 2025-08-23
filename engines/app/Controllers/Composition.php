@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\CompositionModel;
+use App\Models\ShopModel;
 use Config\Database;
 
 class Composition extends BaseController
@@ -18,15 +19,30 @@ class Composition extends BaseController
     // GET /api/compositions
     public function index()
     {
-        $items = $this->model->orderBy('id', 'DESC')->findAll();
+        // Ambil shop_id dari token JWT
+        $payload = $this->decodeToken();
+        if (!$payload) {
+            return api_respond_unauthorized('Invalid token');
+        }
+        $shopId = $payload->shop_id ?? null;
+        if (!$shopId) {
+            return api_respond_success([], 'No shop assigned');
+        }
+
+        $items = $this->model->where('shop_id', $shopId)->orderBy('id', 'DESC')->findAll();
 
         // Ambil total stok per composition (in - out) dalam 1 query
         $db = Database::connect();
-        $stockRows = $db->table('stocks')
-            ->select('composition_id, SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-            ->groupBy('composition_id')
-            ->get()
-            ->getResultArray();
+        $stockRows = [];
+        if (!empty($items)) {
+            $compositionIds = array_column($items, 'id');
+            $stockRows = $db->table('stocks')
+                ->select('composition_id, SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
+                ->whereIn('composition_id', $compositionIds)
+                ->groupBy('composition_id')
+                ->get()
+                ->getResultArray();
+        }
         $stockMap = [];
         foreach ($stockRows as $r) {
             $stockMap[$r['composition_id']] = (int) $r['stock_total'];
@@ -44,7 +60,12 @@ class Composition extends BaseController
         if (!$this->isValidId($id)) {
             return api_respond_validation_error(['id' => 'Invalid id']);
         }
-        $item = $this->model->find($id);
+        $payload = $this->decodeToken();
+        if (!$payload) {
+            return api_respond_unauthorized('Invalid token');
+        }
+        $shopId = $payload->shop_id ?? null;
+        $item = $this->model->where('shop_id', $shopId)->find($id);
         if (!$item) {
             return api_respond_not_found('Composition not found');
         }
@@ -66,7 +87,16 @@ class Composition extends BaseController
         if (!$json) {
             return api_respond_error('Invalid JSON', 400);
         }
+        $payload = $this->decodeToken();
+        if (!$payload) {
+            return api_respond_unauthorized('Invalid token');
+        }
+        $shopId = $payload->shop_id ?? null;
+        if (!$shopId) {
+            return api_respond_validation_error(['shop_id' => 'No shop in token']);
+        }
         $data = [
+            'shop_id'       => (int) $shopId,
             'name'          => trim($json->name ?? ''),
             'cost_price'    => $json->cost_price ?? null,
             'selling_price' => $json->selling_price ?? null,
@@ -74,6 +104,10 @@ class Composition extends BaseController
         ];
         if (!$this->model->validate($data)) {
             return api_respond_validation_error($this->model->errors());
+        }
+        // foreign key check
+        if (!(new ShopModel())->find($data['shop_id'])) {
+            return api_respond_validation_error(['shop_id' => 'Shop not found']);
         }
         if (!$this->model->insert($data)) {
             return api_respond_server_error('Failed to create composition');
@@ -88,7 +122,12 @@ class Composition extends BaseController
         if (!$this->isValidId($id)) {
             return api_respond_validation_error(['id' => 'Invalid id']);
         }
-        $existing = $this->model->find($id);
+        $payload = $this->decodeToken();
+        if (!$payload) {
+            return api_respond_unauthorized('Invalid token');
+        }
+        $shopId = $payload->shop_id ?? null;
+        $existing = $this->model->where('shop_id', $shopId)->find($id);
         if (!$existing) {
             return api_respond_not_found('Composition not found');
         }
@@ -97,6 +136,7 @@ class Composition extends BaseController
             return api_respond_error('Invalid JSON', 400);
         }
         $data = [
+            'shop_id'       => $existing['shop_id'], // tidak boleh diubah lewat update
             'name'          => isset($json->name) ? trim($json->name) : $existing['name'],
             'cost_price'    => isset($json->cost_price) ? $json->cost_price : $existing['cost_price'],
             'selling_price' => isset($json->selling_price) ? $json->selling_price : $existing['selling_price'],
@@ -104,6 +144,9 @@ class Composition extends BaseController
         ];
         if (!$this->model->validate($data)) {
             return api_respond_validation_error($this->model->errors());
+        }
+        if (!(new ShopModel())->find($data['shop_id'])) {
+            return api_respond_validation_error(['shop_id' => 'Shop not found']);
         }
         if (!$this->model->update($id, $data)) {
             return api_respond_server_error('Failed to update composition');
@@ -118,7 +161,12 @@ class Composition extends BaseController
         if (!$this->isValidId($id)) {
             return api_respond_validation_error(['id' => 'Invalid id']);
         }
-        $existing = $this->model->find($id);
+        $payload = $this->decodeToken();
+        if (!$payload) {
+            return api_respond_unauthorized('Invalid token');
+        }
+        $shopId = $payload->shop_id ?? null;
+        $existing = $this->model->where('shop_id', $shopId)->find($id);
         if (!$existing) {
             return api_respond_not_found('Composition not found');
         }

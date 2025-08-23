@@ -51,6 +51,7 @@ class CreateInitialTables extends Migration
         // Compositions
         $this->forge->addField([
             'id'            => ['type' => 'INT', 'auto_increment' => true],
+            'shop_id'       => ['type' => 'INT'],
             'name'          => ['type' => 'VARCHAR', 'constraint' => 100],
             'cost_price'    => ['type' => 'DECIMAL', 'constraint' => '12,2'],
             'selling_price' => ['type' => 'DECIMAL', 'constraint' => '12,2'],
@@ -59,6 +60,7 @@ class CreateInitialTables extends Migration
             'updated_at'    => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
+        $this->forge->addForeignKey('shop_id', 'shops', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('compositions');
 
         // Products
