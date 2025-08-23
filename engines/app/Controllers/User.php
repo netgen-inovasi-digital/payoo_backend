@@ -52,7 +52,6 @@ class User extends BaseController
         }
 
         $this->model->update($user['id'], $data);
-        unset($data['email']); // optional hide? keep if needed
         return api_respond_success($data, 'Profile updated');
     }
 
