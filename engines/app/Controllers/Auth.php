@@ -15,6 +15,7 @@ class Auth extends BaseController
         $this->userModel = new UserModel();
     }
 
+    // POST /api/auth/register
     public function register()
     {
         $json = $this->request->getJSON();
@@ -50,6 +51,7 @@ class Auth extends BaseController
         }
     }
 
+    // POST /api/auth/login
     public function login()
     {
         $json = $this->request->getJSON();
@@ -86,27 +88,6 @@ class Auth extends BaseController
             ], 'Login successful');
         } catch (\Exception $e) {
             return api_respond_server_error('Failed to generate token');
-        }
-    }
-
-    public function profile()
-    {
-        $token = $this->request->getServer('HTTP_AUTHORIZATION');
-        $jwt = substr($token, 7);
-        $jwtConfig = new JWTConfig();
-        try {
-            $payload = jwt_decode($jwt, $jwtConfig->secret);
-            if (!$payload) {
-                return api_respond_unauthorized('Invalid token');
-            }
-            $user = $this->userModel->find($payload->sub);
-            if (!$user) {
-                return api_respond_not_found('User not found');
-            }
-            unset($user['password']);
-            return api_respond_success($user, 'Profile fetched');
-        } catch (\Exception $e) {
-            return api_respond_unauthorized('Invalid token');
         }
     }
 }

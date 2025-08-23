@@ -16,8 +16,10 @@ $routes->group('api/auth', ['namespace' => 'App\Controllers'], function ($routes
 // Protected Routes (dengan filter bearerAuth)
 $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth'], function ($routes) {
 
-    // Auth Protected Routes
-    $routes->get('account/profile', 'Auth::profile'); // GET /api/auth/profile
+    // Account (User) Routes
+    $routes->get('account/profile', 'User::profile');               // GET /api/account/profile
+    $routes->put('account/profile', 'User::updateProfile');         // PUT /api/account/profile
+    $routes->put('account/change-password', 'User::changePassword'); // PUT /api/account/change-password
 
     // Routes untuk Produk
     // $routes->get('produk', 'Produk::index');       // GET /api/produk
@@ -32,7 +34,7 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     $routes->put('products/(:segment)', 'Product::update/$1');  // PUT /api/products/{id}
     $routes->delete('products/(:segment)', 'Product::delete/$1'); // DELETE /api/products/{id}
 
-    // Routes untuk Category (baru)
+    // Routes untuk Categories
     $routes->get('categories', 'Category::index');                 // GET /api/categories
     $routes->get('categories/(:segment)', 'Category::show/$1');    // GET /api/categories/{id}
     $routes->post('categories', 'Category::create');               // POST /api/categories
