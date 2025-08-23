@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\CompositionModel;
+use Config\Database;
 
 class Composition extends BaseController
 {
@@ -18,6 +19,22 @@ class Composition extends BaseController
     public function index()
     {
         $items = $this->model->orderBy('id', 'DESC')->findAll();
+
+        // Ambil total stok per composition (in - out) dalam 1 query
+        $db = Database::connect();
+        $stockRows = $db->table('stocks')
+            ->select('composition_id, SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
+            ->groupBy('composition_id')
+            ->get()
+            ->getResultArray();
+        $stockMap = [];
+        foreach ($stockRows as $r) {
+            $stockMap[$r['composition_id']] = (int) $r['stock_total'];
+        }
+        foreach ($items as &$row) {
+            $row['stock'] = $stockMap[$row['id']] ?? 0;
+        }
+        unset($row);
         return api_respond_success($items, 'Composition list');
     }
 
@@ -31,6 +48,14 @@ class Composition extends BaseController
         if (!$item) {
             return api_respond_not_found('Composition not found');
         }
+        // Hitung stok untuk composition ini
+        $db = Database::connect();
+        $stock = $db->table('stocks')
+            ->select('SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
+            ->where('composition_id', $id)
+            ->get()
+            ->getRowArray();
+        $item['stock'] = isset($stock['stock_total']) ? (int) $stock['stock_total'] : 0;
         return api_respond_success($item, 'Composition detail');
     }
 
