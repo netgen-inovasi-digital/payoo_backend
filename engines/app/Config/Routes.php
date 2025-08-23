@@ -32,5 +32,12 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     $routes->post('categories', 'Category::create');               // POST /api/categories
     $routes->put('categories/(:segment)', 'Category::update/$1');  // PUT /api/categories/{id}
     $routes->delete('categories/(:segment)', 'Category::delete/$1'); // DELETE /api/categories/{id}
+
+    // Routes untuk Shops
+    $routes->get('shops', 'Shop::index');                 // GET /api/shops
+    $routes->get('shops/(:segment)', 'Shop::show/$1');    // GET /api/shops/{id}
+    $routes->post('shops', 'Shop::create');               // POST /api/shops
+    $routes->put('shops/(:segment)', 'Shop::update/$1');  // PUT /api/shops/{id}
+    $routes->delete('shops/(:segment)', 'Shop::delete/$1'); // DELETE /api/shops/{id}
 });
 

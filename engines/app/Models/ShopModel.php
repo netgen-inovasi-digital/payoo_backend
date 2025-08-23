@@ -4,16 +4,20 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class CategoryModel extends Model
+class ShopModel extends Model
 {
-    protected $table            = 'categories';
+    protected $table            = 'shops';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
+        'user_id',
         'name',
+        'email',
+        'address',
+        'phone',
         'created_at',
         'updated_at'
     ];
@@ -22,7 +26,8 @@ class CategoryModel extends Model
     protected bool $updateOnlyChanged = true;
 
     protected array $casts = [
-        'id' => 'integer'
+        'id' => 'integer',
+        'user_id' => 'integer',
     ];
     protected array $castHandlers = [];
 
@@ -35,8 +40,11 @@ class CategoryModel extends Model
 
     // Validation
     protected $validationRules      = [
-        // Note: For update you should override rule to ignore current ID (see controller advice)
-        'name' => 'required|string|max_length[100]|is_unique[categories.name]'
+        'user_id' => 'required|integer',
+        'name'    => 'required|string|max_length[100]',
+        'email'   => 'permit_empty|valid_email|max_length[100]',
+        'address' => 'permit_empty|string',
+        'phone'   => 'permit_empty|string|max_length[100]',
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;

@@ -27,7 +27,7 @@ class Category extends BaseController
     // GET /api/kategori/{id}
     public function show($id = null)
     {
-        if (!$id || !is_numeric($id)) {
+        if (!$this->isValidId($id)) {
             return api_respond_validation_error(['id' => 'Invalid id']);
         }
         $category = $this->model->find($id);
@@ -58,7 +58,7 @@ class Category extends BaseController
     // PUT /api/kategori/{id}
     public function update($id = null)
     {
-        if (!$id || !is_numeric($id)) {
+        if (!$this->isValidId($id)) {
             return api_respond_validation_error(['id' => 'Invalid id']);
         }
         $existing = $this->model->find($id);
@@ -89,7 +89,7 @@ class Category extends BaseController
     // DELETE /api/kategori/{id}
     public function delete($id = null)
     {
-        if (!$id || !is_numeric($id)) {
+        if (!$this->isValidId($id)) {
             return api_respond_validation_error(['id' => 'Invalid id']);
         }
         $existing = $this->model->find($id);

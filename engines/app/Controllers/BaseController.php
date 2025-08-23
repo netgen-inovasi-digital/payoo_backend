@@ -8,6 +8,7 @@ use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use Config\JWT as JWTConfig;
 
 /**
  * Class BaseController
@@ -54,5 +55,45 @@ abstract class BaseController extends Controller
         // Preload any models, libraries, etc, here.
 
         // E.g.: $this->session = service('session');
+    }
+
+    /**
+     * Validate numeric ID from route parameter.
+     *
+     * Accepts string or int. Rejects null, empty string, and non-digit strings.
+     *
+     * @param mixed $id Value to validate (typically from URI segment).
+     * @return bool True if $id is a string of digits or int >= 0; otherwise false.
+     */
+    protected function isValidId($id)
+    {
+        return $id !== null && ctype_digit((string)$id);
+    }
+
+    /**
+     * Decode JWT from Authorization header (Bearer <token>).
+     *
+     * Steps:
+     * 1. Ambil header Authorization (HTTP_AUTHORIZATION).
+     * 2. Validasi prefix 'Bearer '. Jika tidak ada, return null.
+     * 3. Extract token (substring setelah 'Bearer ').
+     * 4. Gunakan secret dari Config\JWT untuk decoding melalui helper jwt_decode().
+     * 5. Tangkap error/exception dan kembalikan null jika gagal.
+     *
+     * @return object|null Payload token (stdClass) jika valid, null jika tidak ada / invalid / expired.
+     */
+    protected function decodeToken()
+    {
+        $header = $this->request->getServer('HTTP_AUTHORIZATION');
+        if (!$header || stripos($header, 'Bearer ') !== 0) {
+            return null;
+        }
+        $jwt = substr($header, 7);
+        $config = new JWTConfig();
+        try {
+            return jwt_decode($jwt, $config->secret);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

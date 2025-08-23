@@ -26,7 +26,9 @@ class UserModel extends Model
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
 
-    protected array $casts = [];
+    protected array $casts = [
+        'id' => 'integer'
+    ];
     protected array $castHandlers = [];
 
     // Dates
