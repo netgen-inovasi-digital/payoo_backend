@@ -6,6 +6,7 @@ use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\Config\Services;
+use Config\JWT as JWTConfig;
 
 class BearerAuth implements FilterInterface
 {
@@ -15,7 +16,10 @@ class BearerAuth implements FilterInterface
 
         if (!$token || !$this->isValidToken($token)) {
             return Services::response()
-                ->setJSON(['message' => 'Unauthorized'])
+                ->setJSON([
+                    'status' => 'error',
+                    'message' => 'Unauthorized - Invalid or missing token'
+                ])
                 ->setStatusCode(401);
         }
     }
@@ -27,7 +31,15 @@ class BearerAuth implements FilterInterface
 
     private function isValidToken($token)
     {
-        // Verifikasi token di sini (misalnya memeriksa apakah token valid)
-        return $token === 'Bearer 1cd0bf3e8022fb99af58b642014eb2de'; // Contoh validasi sederhana
+        $jwtConfig = new JWTConfig();
+        if (!$jwtConfig->secret) {
+            return false;
+        }
+        if (strpos($token, 'Bearer ') === 0) {
+            $jwt = substr($token, 7);
+            $payload = jwt_decode($jwt, $jwtConfig->secret);
+            return !empty($payload) && isset($payload->exp) && $payload->exp > time();
+        }
+        return false;
     }
 }

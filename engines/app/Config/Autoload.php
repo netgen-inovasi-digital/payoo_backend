@@ -90,5 +90,8 @@ class Autoload extends AutoloadConfig
      *
      * @var list<string>
      */
-    public $helpers = [];
+    public $helpers = [
+        'jwt_helper',
+        'api_response_helper',
+    ];
 }
