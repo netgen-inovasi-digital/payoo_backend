@@ -17,6 +17,9 @@ class ShopModel extends Model
         'name',
         'email',
         'address',
+        'type',
+        'province',
+        'city',
         'phone',
         'created_at',
         'updated_at'
@@ -44,6 +47,9 @@ class ShopModel extends Model
         'name'    => 'required|string|max_length[100]',
         'email'   => 'permit_empty|valid_email|max_length[100]',
         'address' => 'permit_empty|string',
+        'type'    => 'permit_empty|in_list[mandiri,perusahaan]',
+        'province' => 'permit_empty|string|max_length[100]',
+        'city'    => 'permit_empty|string|max_length[100]',
         'phone'   => 'permit_empty|string|max_length[100]',
     ];
     protected $validationMessages   = [];
