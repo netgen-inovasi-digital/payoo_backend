@@ -53,6 +53,9 @@ class Shop extends BaseController
             'name'    => trim($json->name ?? ''),
             'email'   => trim($json->email ?? ''),
             'address' => trim($json->address ?? ''),
+            'type'    => isset($json->type) ? trim($json->type) : 'mandiri',
+            'province'=> isset($json->province) ? trim($json->province) : null,
+            'city'    => isset($json->city) ? trim($json->city) : null,
             'phone'   => trim($json->phone ?? ''),
         ];
 
@@ -96,6 +99,9 @@ class Shop extends BaseController
             'name'    => isset($json->name) ? trim($json->name) : $existing['name'],
             'email'   => isset($json->email) ? trim($json->email) : $existing['email'],
             'address' => isset($json->address) ? trim($json->address) : $existing['address'],
+            'type'    => isset($json->type) ? trim($json->type) : ($existing['type'] ?? 'mandiri'),
+            'province'=> isset($json->province) ? trim($json->province) : ($existing['province'] ?? null),
+            'city'    => isset($json->city) ? trim($json->city) : ($existing['city'] ?? null),
             'phone'   => isset($json->phone) ? trim($json->phone) : $existing['phone'],
         ];
 
