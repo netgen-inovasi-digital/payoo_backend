@@ -58,4 +58,11 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     // Routes untuk Stocks (Create & Read only)
     $routes->get('stocks/(:segment)', 'Stock::show/$1');    // GET /api/stocks/{composition_id}
     $routes->post('stocks', 'Stock::create');               // POST /api/stocks
+
+    // Routes untuk Orders
+    $routes->post('orders', 'Order::create');               // POST /api/orders
+    $routes->get('orders/user/(:segment)', 'Order::userOrders/$1'); // GET /api/orders/user/{user_id}
+    $routes->get('orders/shop/(:segment)', 'Order::shopOrders/$1'); // GET /api/orders/shop/{shop_id}
+    $routes->get('orders/(:segment)', 'Order::show/$1');    // GET /api/orders/{id}
+    $routes->put('orders/status/(:segment)', 'Order::updateStatus/$1'); // PUT /api/orders/status/{id}
 });
