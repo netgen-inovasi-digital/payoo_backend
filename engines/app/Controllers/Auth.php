@@ -42,8 +42,25 @@ class Auth extends BaseController
             $userId = $this->userModel->insert($data);
             if ($userId) {
                 $user = $this->userModel->find($userId);
-                unset($user['password']);
-                return api_respond_created($user, 'User registered successfully');
+                $jwtConfig = new JWTConfig();
+                $payload = [
+                    'sub' => $user['id'],
+                    'name' => $user['name'],
+                    'email' => $user['email'],
+                    'role' => $user['role'],
+                    'shop_id' => $this->getShopIdByUserId($user['id'])
+                ];
+                try {
+                    $token = jwt_encode($payload, $jwtConfig->secret, $jwtConfig->ttl);
+                } catch (\Exception $e) {
+                    return api_respond_server_error('Failed to generate token');
+                }
+                $userResponse = $user;
+                unset($userResponse['password']);
+                return api_respond_created([
+                    'token' => $token,
+                    'user' => $userResponse
+                ], 'User registered successfully');
             } else {
                 return api_respond_error('Failed to register user', 500);
             }
