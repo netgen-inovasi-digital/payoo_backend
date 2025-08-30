@@ -7,6 +7,10 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 
+// Public file serving for uploads (no auth)
+$routes->get('uploads/(:segment)', 'Upload::serve/$1'); // uploads/{filename}
+$routes->get('uploads/(:segment)/(:segment)', 'Upload::serve/$1/$2'); // uploads/{folder}/{filename}
+
 // Public Auth Routes (tanpa filter)
 $routes->group('api/auth', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->post('register', 'Auth::register');   // POST /api/auth/register
@@ -65,4 +69,7 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     $routes->get('orders/shop/(:segment)', 'Order::shopOrders/$1'); // GET /api/orders/shop/{shop_id}
     $routes->get('orders/(:segment)', 'Order::show/$1');    // GET /api/orders/{id}
     $routes->put('orders/status/(:segment)', 'Order::updateStatus/$1'); // PUT /api/orders/status/{id}
+
+    // Upload
+    $routes->post('upload', 'Upload::create'); // POST /api/upload
 });
