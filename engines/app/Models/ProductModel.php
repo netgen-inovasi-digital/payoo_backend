@@ -48,6 +48,7 @@ class ProductModel extends Model
         'shop_id'       => 'required|integer',
         'category_id'   => 'required|integer',
         'name'          => 'required|string|max_length[150]',
+        'description'   => 'permit_empty|string',
         'photo'         => 'permit_empty|string|max_length[255]',
         'cost_price'    => 'required|decimal',
         'selling_price' => 'required|decimal',
