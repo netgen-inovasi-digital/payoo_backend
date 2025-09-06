@@ -84,6 +84,7 @@ class User extends BaseController
         if (!$payload) return api_respond_unauthorized('Invalid token');
         $user = $this->model->find($payload->sub ?? 0);
         if (!$user) return api_respond_not_found('User not found');
+        if (isset($payload->shop_id)) $user['shop_id'] = (int)$payload->shop_id;
         return $user;
     }
 }
