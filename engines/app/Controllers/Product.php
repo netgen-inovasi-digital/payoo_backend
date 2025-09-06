@@ -70,6 +70,7 @@ class Product extends BaseController
             'shop_id'       => (int) $shopId,
             'category_id'   => (int) ($json->category_id ?? 0),
             'name'          => trim($json->name ?? ''),
+            'description'   => trim($json->description ?? ''),
             'photo'         => trim($json->photo ?? ''),
             'cost_price'    => $json->cost_price ?? null,
             'selling_price' => $json->selling_price ?? null,
@@ -120,6 +121,7 @@ class Product extends BaseController
             'category_id'   => isset($json->category_id) ? (int)$json->category_id : $existing['category_id'],
             'name'          => isset($json->name) ? trim($json->name) : $existing['name'],
             'photo'         => isset($json->photo) ? trim($json->photo) : $existing['photo'],
+            'description'   => isset($json->description) ? trim($json->description) : $existing['description'],
             'cost_price'    => isset($json->cost_price) ? $json->cost_price : $existing['cost_price'],
             'selling_price' => isset($json->selling_price) ? $json->selling_price : $existing['selling_price'],
         ];
