@@ -25,6 +25,10 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     $routes->put('account/profile', 'User::updateProfile');         // PUT /api/account/profile
     $routes->put('account/change-password', 'User::changePassword'); // PUT /api/account/change-password
 
+    // Reports
+    $routes->get('reports/(:segment)/summary', 'Report::summary/$1'); // GET /api/reports/{shop_id}/summary?period=
+    $routes->get('reports/(:segment)/orders', 'Report::orders/$1');   // GET /api/reports/{shop_id}/orders?period=&status=&limit=&offset=
+
     // Routes untuk Produk
     // $routes->get('produk', 'Produk::index');       // GET /api/produk
     // $routes->get('produk/(:segment)', 'Produk::show/$1'); // GET /api/produk/{id}
