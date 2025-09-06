@@ -16,6 +16,7 @@ class ProductModel extends Model
         'shop_id',
         'category_id',
         'name',
+        'description',
         'photo',
         'cost_price',
         'selling_price',

@@ -72,6 +72,7 @@ class CreateInitialTables extends Migration
             'shop_id'       => ['type' => 'INT'],
             'category_id'   => ['type' => 'INT'],
             'name'          => ['type' => 'VARCHAR', 'constraint' => 150],
+            'description'   => ['type' => 'TEXT', 'null' => true],
             'photo'         => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
             'cost_price'    => ['type' => 'DECIMAL', 'constraint' => '12,2'],
             'selling_price' => ['type' => 'DECIMAL', 'constraint' => '12,2'],
