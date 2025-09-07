@@ -89,6 +89,7 @@ class CreateInitialTables extends Migration
             'id'             => ['type' => 'INT', 'auto_increment' => true],
             'product_id'     => ['type' => 'INT'],
             'composition_id' => ['type' => 'INT'],
+            'quantity'       => ['type' => 'INT'],
             'created_at'     => ['type' => 'DATETIME', 'null' => true],
             'updated_at'     => ['type' => 'DATETIME', 'null' => true],
         ]);

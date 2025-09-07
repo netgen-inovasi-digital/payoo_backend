@@ -15,6 +15,7 @@ class ProductCompositionModel extends Model
     protected $allowedFields    = [
         'product_id',
         'composition_id',
+        'quantity',
         'created_at',
         'updated_at'
     ];
@@ -26,6 +27,7 @@ class ProductCompositionModel extends Model
         'id'             => 'integer',
         'product_id'     => 'integer',
         'composition_id' => 'integer',
+        'quantity'       => 'integer',
     ];
     protected array $castHandlers = [];
 
@@ -40,6 +42,7 @@ class ProductCompositionModel extends Model
     protected $validationRules = [
         'product_id'     => 'required|integer',
         'composition_id' => 'required|integer',
+        'quantity'       => 'required|integer|greater_than[0]',
     ];
     protected $validationMessages = [];
     protected $skipValidation       = false;

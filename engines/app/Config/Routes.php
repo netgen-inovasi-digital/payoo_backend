@@ -45,6 +45,7 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     // Product Compositions Routes
     $routes->get('products/(:segment)/compositions', 'Product::getCompositions/$1');           // GET /api/products/{id}/compositions
     $routes->post('products/(:segment)/compositions', 'Product::addComposition/$1');           // POST /api/products/{id}/compositions
+    $routes->put('products/(:segment)/compositions', 'Product::updateComposition/$1');         // PUT /api/products/{id}/compositions (bulk update)
     $routes->delete('products/(:segment)/compositions/(:segment)', 'Product::removeComposition/$1/$2'); // DELETE /api/products/{id}/compositions/{composition_id}
 
     // Routes untuk Categories
