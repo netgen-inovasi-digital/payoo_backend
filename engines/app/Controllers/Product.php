@@ -350,18 +350,26 @@ class Product extends BaseController
                 return api_respond_validation_error(['compositions' => 'Compositions must be an array']);
             }
             
-            foreach ($json->compositions as $composition) {
-                if (is_array($composition)) {
-                    $compositionsToAdd[] = [
-                        'composition_id' => $composition['composition_id'] ?? null,
-                        'quantity' => $composition['quantity'] ?? 1
-                    ];
-                } else {
-                    $compositionsToAdd[] = [
-                        'composition_id' => $composition,
-                        'quantity' => 1
-                    ];
+            foreach ($json->compositions as $item) {
+                // Normalisasi: jika stdClass ubah ke array
+                if (is_object($item)) {
+                    $item = (array)$item;
                 }
+
+                if (is_array($item)) {
+                    $cid = $item['composition_id'] ?? null;
+                    $qty = $item['quantity'] ?? 1;
+                } elseif (is_numeric($item)) { // hanya ID saja
+                    $cid = $item;
+                    $qty = 1;
+                } else {
+                    return api_respond_validation_error(['compositions' => 'Invalid composition item format']);
+                }
+
+                $compositionsToAdd[] = [
+                    'composition_id' => $cid,
+                    'quantity' => $qty
+                ];
             }
         } else {
             return api_respond_validation_error(['composition_id' => 'Either composition_id or compositions array is required']);
@@ -369,12 +377,25 @@ class Product extends BaseController
 
         // Validasi semua compositions
         $compositionModel = new CompositionModel();
+
+        // Cek duplikat lebih awal
+        if (count($compositionsToAdd) > 1) {
+            $ids = array_map(fn($c) => $c['composition_id'], $compositionsToAdd);
+            $dups = array_unique(array_diff_assoc($ids, array_unique($ids)));
+            if (!empty($dups)) {
+                return api_respond_validation_error(['compositions' => 'Duplicate composition IDs in request: ' . implode(',', $dups)]);
+            }
+        }
+
         foreach ($compositionsToAdd as $compositionData) {
             $compositionId = $compositionData['composition_id'];
             $quantity = $compositionData['quantity'];
             
-            if (!$compositionId || !is_numeric($compositionId)) {
-                return api_respond_validation_error(['composition_id' => 'All composition IDs must be valid numeric values']);
+            if (is_object($compositionId)) { // safeguard kalau masih object
+                return api_respond_validation_error(['composition_id' => 'Invalid composition ID format']);
+            }
+            if (!is_numeric($compositionId)) {
+                return api_respond_validation_error(['composition_id' => 'All composition IDs must be numeric']);
             }
             if (!is_numeric($quantity) || $quantity <= 0) {
                 return api_respond_validation_error(['quantity' => 'All quantities must be numeric and greater than 0']);
