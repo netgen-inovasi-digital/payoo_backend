@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\UserModel;
 use CodeIgniter\HTTP\ResponseInterface;
+use Config\Services;
 
 helper(['api_response_helper']);
 
@@ -39,19 +40,17 @@ class User extends BaseController
             'name'  => $json->name  ?? $user['name'],
             'email' => $json->email ?? $user['email'],
             'phone' => $json->phone ?? $user['phone'],
+            'photo' => $json->photo ?? $user['photo'],
         ];
 
-        // Cek email unik jika berubah
-        if ($data['email'] !== $user['email']) {
-            $exists = $this->model->where('email', $data['email'])->where('id !=', $user['id'])->first();
-            if ($exists) return api_respond_validation_error(['email' => 'Email already used']);
+        $errors = $this->validateProfileData($data, $user['id']);
+        if ($errors) return api_respond_validation_error($errors);
+
+        // Skip model validation because we already validated manually including unique email exception
+        if (!$this->model->skipValidation(true)->update($user['id'], $data)) {
+            return api_respond_server_error('Failed to update profile');
         }
 
-        if (!$this->model->validate($data)) {
-            return api_respond_validation_error($this->model->errors());
-        }
-
-        $this->model->update($user['id'], $data);
         return api_respond_success($data, 'Profile updated');
     }
 
@@ -86,5 +85,29 @@ class User extends BaseController
         if (!$user) return api_respond_not_found('User not found');
         if (isset($payload->shop_id)) $user['shop_id'] = (int)$payload->shop_id;
         return $user;
+    }
+
+    /**
+     * Validate profile data.
+     * Returns array of errors or empty array/null if valid.
+     */
+    private function validateProfileData(array $data, int $userId, bool $includeRole = false): ?array
+    {
+        $rules = [
+            'name'  => 'required|max_length[100]',
+            'email' => 'required|valid_email|max_length[100]|is_unique[users.email,id,' . $userId . ']',
+            'phone' => 'permit_empty|max_length[100]',
+            'photo' => 'permit_empty|max_length[255]',
+        ];
+        if ($includeRole) {
+            $rules['role'] = 'required|in_list[owner,employee,user]';
+        }
+
+        $validation = Services::validation();
+        $validation->setRules($rules);
+        if (!$validation->run($data)) {
+            return $validation->getErrors();
+        }
+        return null;
     }
 }
