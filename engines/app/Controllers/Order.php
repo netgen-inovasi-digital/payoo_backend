@@ -34,11 +34,12 @@ class Order extends BaseController
             return api_respond_validation_error(['user_id' => 'User not found in token']);
         }
         $data = [
-            'user_id' => (int) $userId,
-            'shop_id' => $json->shop_id ?? null,
-            'status'  => 'pending',
-            'notes'   => $json->notes ?? null,
-            'total'   => $json->total ?? null,
+            'user_id'     => (int) $userId,
+            'shop_id'     => $json->shop_id ?? null,
+            'status'      => 'pending',
+            'notes'       => $json->notes ?? null,
+            'total'       => $json->total ?? null,
+            'amount_paid' => $json->amount_paid ?? 0,
         ];
         $orderItems = $json->order_items ?? [];
         if (!$this->model->validate($data)) {
@@ -105,15 +106,16 @@ class Order extends BaseController
         }
         // Ambil data order dari baris pertama
         $order = [
-            'id'         => $result[0]['id'],
-            'user_id'    => $result[0]['user_id'],
-            'shop_id'    => $result[0]['shop_id'],
-            'status'     => $result[0]['status'],
-            'notes'      => $result[0]['notes'],
-            'total'      => $result[0]['total'],
-            'created_at' => $result[0]['created_at'],
-            'updated_at' => $result[0]['updated_at'],
-            'order_items'=> []
+            'id'          => $result[0]['id'],
+            'user_id'     => $result[0]['user_id'],
+            'shop_id'     => $result[0]['shop_id'],
+            'status'      => $result[0]['status'],
+            'notes'       => $result[0]['notes'],
+            'total'       => $result[0]['total'],
+            'amount_paid' => $result[0]['amount_paid'],
+            'created_at'  => $result[0]['created_at'],
+            'updated_at'  => $result[0]['updated_at'],
+            'order_items' => []
         ];
         foreach ($result as $row) {
             if ($row['item_id']) {

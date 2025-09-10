@@ -121,6 +121,7 @@ class CreateInitialTables extends Migration
             'status'     => ['type' => 'ENUM', 'constraint' => ['pending', 'paid', 'shipped', 'completed', 'cancelled'], 'default' => 'pending'],
             'notes'      => ['type' => 'TEXT', 'null' => true],
             'total'      => ['type' => 'DECIMAL', 'constraint' => '12,2'],
+            'amount_paid' => ['type' => 'DECIMAL', 'constraint' => '12,2', 'default' => 0],
             'created_at' => ['type' => 'DATETIME', 'null' => true],
             'updated_at' => ['type' => 'DATETIME', 'null' => true],
         ]);

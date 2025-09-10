@@ -18,6 +18,7 @@ class OrderModel extends Model
         'status',
         'notes',
         'total',
+        'amount_paid',
         'created_at',
         'updated_at'
     ];
@@ -26,10 +27,11 @@ class OrderModel extends Model
     protected bool $updateOnlyChanged = true;
 
     protected array $casts = [
-        'id'      => 'integer',
-        'user_id' => 'integer',
-        'shop_id' => 'integer',
-        'total'   => 'float',
+        'id'          => 'integer',
+        'user_id'     => 'integer',
+        'shop_id'     => 'integer',
+        'total'       => 'float',
+        'amount_paid' => 'float',
     ];
     protected array $castHandlers = [];
 
@@ -42,11 +44,12 @@ class OrderModel extends Model
 
     // Validation
     protected $validationRules      = [
-        'user_id' => 'required|integer',
-        'shop_id' => 'required|integer',
-        'status'  => 'required|in_list[pending,paid,shipped,completed,cancelled]',
-        'notes'   => 'permit_empty|string',
-        'total'   => 'required|decimal',
+        'user_id'     => 'required|integer',
+        'shop_id'     => 'required|integer',
+        'status'      => 'required|in_list[pending,paid,shipped,completed,cancelled]',
+        'notes'       => 'permit_empty|string',
+        'total'       => 'required|decimal',
+        'amount_paid' => 'permit_empty|decimal',
     ];
     protected $validationMessages   = [
         'status' => [
