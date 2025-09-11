@@ -77,10 +77,18 @@ class Auth extends BaseController
             return api_respond_error('Invalid JSON input', 400);
         }
 
-        $email = $json->email ?? null;
+        $email = trim($json->email ?? '');
         $password = $json->password ?? null;
-        if (!$email || !$password) {
-            return api_respond_error('Email and password are required', 400);
+        // Per-field validation: kembalikan error terpisah
+        $errors = [];
+        if (is_null($email) || $email === '') {
+            $errors['email'] = 'Email is required';
+        }
+        if (is_null($password) || $password === '') {
+            $errors['password'] = 'Password is required';
+        }
+        if (!empty($errors)) {
+            return api_respond_validation_error($errors);
         }
 
         $user = $this->userModel->where('email', $email)->first();
