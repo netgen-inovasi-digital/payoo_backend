@@ -34,6 +34,7 @@ class CreateInitialTables extends Migration
             'province'   => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             'city'       => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             'phone'      => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
+            'photo'      => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
             'created_at' => ['type' => 'DATETIME', 'null' => true],
             'updated_at' => ['type' => 'DATETIME', 'null' => true],
         ]);

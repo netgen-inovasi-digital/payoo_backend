@@ -21,6 +21,7 @@ class ShopModel extends Model
         'province',
         'city',
         'phone',
+        'photo',
         'created_at',
         'updated_at'
     ];
