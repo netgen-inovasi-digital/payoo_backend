@@ -106,6 +106,11 @@ class Product extends BaseController
             
             $compositionModel = new CompositionModel();
             foreach ($compositions as $composition) {
+                // Normalisasi: jika stdClass ubah ke array
+                if (is_object($composition)) {
+                    $composition = (array)$composition;
+                }
+                
                 // Composition bisa berupa ID saja (backward compatibility) atau object dengan quantity
                 $compositionId = is_array($composition) ? ($composition['composition_id'] ?? null) : $composition;
                 $quantity = is_array($composition) ? ($composition['quantity'] ?? 1) : 1;
@@ -135,6 +140,11 @@ class Product extends BaseController
         // Insert compositions jika ada
         if (!empty($compositions)) {
             foreach ($compositions as $composition) {
+                // Normalisasi: jika stdClass ubah ke array
+                if (is_object($composition)) {
+                    $composition = (array)$composition;
+                }
+                
                 // Composition bisa berupa ID saja atau object dengan quantity
                 $compositionId = is_array($composition) ? ($composition['composition_id'] ?? null) : $composition;
                 $quantity = is_array($composition) ? ($composition['quantity'] ?? 1) : 1;
@@ -214,6 +224,11 @@ class Product extends BaseController
             
             $compositionModel = new CompositionModel();
             foreach ($compositions as $composition) {
+                // Normalisasi: jika stdClass ubah ke array
+                if (is_object($composition)) {
+                    $composition = (array)$composition;
+                }
+                
                 // Composition bisa berupa ID saja (backward compatibility) atau object dengan quantity
                 $compositionId = is_array($composition) ? ($composition['composition_id'] ?? null) : $composition;
                 $quantity = is_array($composition) ? ($composition['quantity'] ?? 1) : 1;
@@ -245,6 +260,11 @@ class Product extends BaseController
             
             // Insert compositions baru
             foreach ($compositions as $composition) {
+                // Normalisasi: jika stdClass ubah ke array
+                if (is_object($composition)) {
+                    $composition = (array)$composition;
+                }
+                
                 // Composition bisa berupa ID saja atau object dengan quantity
                 $compositionId = is_array($composition) ? ($composition['composition_id'] ?? null) : $composition;
                 $quantity = is_array($composition) ? ($composition['quantity'] ?? 1) : 1;

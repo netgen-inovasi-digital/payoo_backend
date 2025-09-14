@@ -7,6 +7,8 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 use App\Models\OrderModel;
 use App\Models\OrderItemModel;
+use App\Models\ProductCompositionModel;
+use App\Models\StockModel;
 use Config\Database;
 
 class Order extends BaseController
@@ -30,12 +32,13 @@ class Order extends BaseController
             return api_respond_unauthorized('Invalid token');
         }
         $userId = $payload->sub ?? null;
+        $shopId = $payload->shop_id ?? null;
         if (!$userId) {
             return api_respond_validation_error(['user_id' => 'User not found in token']);
         }
         $data = [
             'user_id'     => (int) $userId,
-            'shop_id'     => $json->shop_id ?? null,
+            'shop_id'     => (int) $shopId,
             'status'      => 'pending',
             'notes'       => $json->notes ?? null,
             'total'       => $json->total ?? null,
@@ -51,19 +54,25 @@ class Order extends BaseController
 
         $db = Database::connect();
         $db->transStart();
+        
         $orderId = $this->model->insert($data);
         if (!$orderId) {
             $db->transRollback();
             return api_respond_server_error('Failed to create order');
         }
+        
         $orderItemModel = new OrderItemModel();
         $insertedItems = [];
+        
         foreach ($orderItems as $item) {
+            // Normalize stdClass to array for safety
+            if (is_object($item)) $item = (array)$item;
+
             $itemData = [
                 'order_id'   => $orderId,
-                'product_id' => $item->product_id ?? null,
-                'quantity'   => $item->quantity ?? null,
-                'price'      => $item->price ?? null,
+                'product_id' => $item['product_id'] ?? null,
+                'quantity'   => $item['quantity'] ?? null,
+                'price'      => $item['price'] ?? null,
             ];
             if (!$orderItemModel->validate($itemData)) {
                 $db->transRollback();
@@ -75,10 +84,62 @@ class Order extends BaseController
             }
             $insertedItems[] = $orderItemModel->find($orderItemModel->getInsertID());
         }
+
+        // Reduce stock for compositions used by ordered products
+        $pcModel = new ProductCompositionModel();
+        $stockModel = new StockModel();
+        
+        foreach ($orderItems as $rawItem) {
+            if (is_object($rawItem)) $rawItem = (array)$rawItem;
+            
+            $productId = $rawItem['product_id'] ?? null;
+            $itemQty = isset($rawItem['quantity']) ? (int)$rawItem['quantity'] : 0;
+            
+            if (!$productId || $itemQty <= 0) {
+                continue;
+            }
+
+            // Get compositions for this product
+            $comps = $pcModel->getCompositionsByProduct($productId);
+            if (empty($comps)) {
+                continue; // product has no compositions -> no stock change
+            }
+
+            foreach ($comps as $comp) {
+                $compId = $comp['composition_id'] ?? null;
+                $perProdQty = $comp['quantity'] ?? null;
+                
+                if (!$compId || !$perProdQty) {
+                    continue;
+                }
+
+                // Calculate total quantity to reduce from stock
+                $outQty = (int)$perProdQty * $itemQty;
+                
+                $stockData = [
+                    'composition_id' => (int)$compId,
+                    'quantity'       => $outQty,
+                    'type'           => 'out',
+                    'date'           => date('Y-m-d H:i:s'),
+                ];
+
+                if (!$stockModel->validate($stockData)) {
+                    $db->transRollback();
+                    return api_respond_validation_error(['stock' => $stockModel->errors()]);
+                }
+                
+                if (!$stockModel->insert($stockData)) {
+                    $db->transRollback();
+                    return api_respond_server_error("Failed to reduce stock for composition {$compId}");
+                }
+            }
+        }
+        
         $db->transComplete();
         if ($db->transStatus() === false) {
             return api_respond_server_error('Transaction failed');
         }
+        
         $created = $this->model->find($orderId);
         $created['order_items'] = $insertedItems;
         return api_respond_created($created, 'Order created');
