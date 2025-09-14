@@ -68,6 +68,10 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     $routes->post('compositions', 'Composition::create');               // POST /api/compositions
     $routes->put('compositions/(:segment)', 'Composition::update/$1');  // PUT /api/compositions/{id}
     $routes->delete('compositions/(:segment)', 'Composition::delete/$1'); // DELETE /api/compositions/{id}
+    
+    // Combined Composition + Stock Routes
+    $routes->post('compositions/with-stock', 'Composition::createWithStock');     // POST /api/compositions/with-stock
+    $routes->put('compositions/(:segment)/with-stock', 'Composition::updateWithStock/$1'); // PUT /api/compositions/{id}/with-stock
 
     // Routes untuk Stocks (Create & Read only)
     $routes->get('stocks/(:segment)', 'Stock::show/$1');    // GET /api/stocks/{composition_id}
