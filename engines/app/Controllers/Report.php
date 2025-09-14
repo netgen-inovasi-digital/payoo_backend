@@ -113,21 +113,33 @@ class Report extends BaseController
         $end = clone $now;
 
         $db = Database::connect();
-        $builder = $db->table('orders');
-        $builder->where('shop_id', $shopId);
-        $builder->where('created_at >=', $start->format('Y-m-d H:i:s'));
-        $builder->where('created_at <=', $end->format('Y-m-d H:i:s'));
+        $builder = $db->table('orders o');
+        $builder->select('o.*, COALESCE(SUM(oi.quantity), 0) as total_items');
+        $builder->join('order_items oi', 'oi.order_id = o.id', 'left');
+        $builder->where('o.shop_id', $shopId);
+        $builder->where('o.created_at >=', $start->format('Y-m-d H:i:s'));
+        $builder->where('o.created_at <=', $end->format('Y-m-d H:i:s'));
         
         if ($status && in_array($status, ['pending', 'paid', 'shipped', 'completed', 'cancelled'])) {
-            $builder->where('status', $status);
+            $builder->where('o.status', $status);
         }
 
-        // Count total untuk pagination info
-        $totalBuilder = clone $builder;
-        $total = $totalBuilder->countAllResults();
+        $builder->groupBy('o.id');
+
+        // Count total untuk pagination info (perlu query terpisah karena GROUP BY)
+        $countBuilder = $db->table('orders');
+        $countBuilder->where('shop_id', $shopId);
+        $countBuilder->where('created_at >=', $start->format('Y-m-d H:i:s'));
+        $countBuilder->where('created_at <=', $end->format('Y-m-d H:i:s'));
+        
+        if ($status && in_array($status, ['pending', 'paid', 'shipped', 'completed', 'cancelled'])) {
+            $countBuilder->where('status', $status);
+        }
+        
+        $total = $countBuilder->countAllResults();
 
         // Get orders dengan limit dan offset
-        $orders = $builder->orderBy('created_at', 'DESC')
+        $orders = $builder->orderBy('o.created_at', 'DESC')
                          ->limit($limit, $offset)
                          ->get()
                          ->getResultArray();
