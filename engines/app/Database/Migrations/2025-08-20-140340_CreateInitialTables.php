@@ -46,10 +46,12 @@ class CreateInitialTables extends Migration
         $this->forge->addField([
             'id'         => ['type' => 'INT', 'auto_increment' => true],
             'name'       => ['type' => 'VARCHAR', 'constraint' => 100],
+            'shop_id'       => ['type' => 'INT'],
             'created_at' => ['type' => 'DATETIME', 'null' => true],
             'updated_at' => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
+        $this->forge->addForeignKey('shop_id', 'shops', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('categories');
 
         // Compositions

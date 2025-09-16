@@ -14,6 +14,7 @@ class CategoryModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'name',
+        'shop_id',
         'created_at',
         'updated_at'
     ];
@@ -22,7 +23,8 @@ class CategoryModel extends Model
     protected bool $updateOnlyChanged = true;
 
     protected array $casts = [
-        'id' => 'integer'
+        'id' => 'integer',
+        'shop_id' => 'integer',
     ];
     protected array $castHandlers = [];
 
@@ -35,6 +37,7 @@ class CategoryModel extends Model
 
     // Validation
     protected $validationRules      = [
+        'shop_id' => 'required|integer',
         // Note: For update you should override rule to ignore current ID (see controller advice)
         'name' => 'required|string|max_length[100]|is_unique[categories.name]'
     ];
