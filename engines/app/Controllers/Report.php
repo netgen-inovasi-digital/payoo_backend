@@ -65,8 +65,8 @@ class Report extends BaseController
     }
 
     /**
-     * GET /api/reports/{shop_id}/orders?period=today|this_week|this_month&status=pending&limit=50&offset=0
-     * Get orders with period filter and pagination
+     * GET /api/reports/{shop_id}/orders?period=today|this_week|this_month&status=pending
+     * Get orders with period filter
      */
     public function orders($shopId = null)
     {
@@ -84,16 +84,10 @@ class Report extends BaseController
 
         $period = $this->request->getGet('period') ?? 'today';
         $status = $this->request->getGet('status');
-        $limit = (int)($this->request->getGet('limit') ?? 50);
-        $offset = (int)($this->request->getGet('offset') ?? 0);
 
         if (!in_array($period, ['today', 'this_week', 'this_month'])) {
             return api_respond_validation_error(['period' => 'Invalid period (today, this_week, this_month)']);
         }
-
-        if ($limit > 100) $limit = 100; // Max limit
-        if ($limit < 1) $limit = 10;
-        if ($offset < 0) $offset = 0;
 
         // Hitung range waktu
         $now = new \DateTime('now');
@@ -126,34 +120,16 @@ class Report extends BaseController
 
         $builder->groupBy('o.id');
 
-        // Count total untuk pagination info (perlu query terpisah karena GROUP BY)
-        $countBuilder = $db->table('orders');
-        $countBuilder->where('shop_id', $shopId);
-        $countBuilder->where('created_at >=', $start->format('Y-m-d H:i:s'));
-        $countBuilder->where('created_at <=', $end->format('Y-m-d H:i:s'));
-        
-        if ($status && in_array($status, ['pending', 'paid', 'shipped', 'completed', 'cancelled'])) {
-            $countBuilder->where('status', $status);
-        }
-        
-        $total = $countBuilder->countAllResults();
-
-        // Get orders dengan limit dan offset
+        // Get all orders without pagination
         $orders = $builder->orderBy('o.created_at', 'DESC')
-                         ->limit($limit, $offset)
                          ->get()
                          ->getResultArray();
 
         $data = [
             'orders' => $orders,
-            'pagination' => [
-                'total' => $total,
-                'limit' => $limit,
-                'offset' => $offset,
-                'has_more' => ($offset + $limit) < $total
-            ],
+            'total_orders' => count($orders),
             'period' => $period,
-            'status_filter' => $status,
+            // 'status_filter' => $status,
             'date_range' => [
                 'start' => $start->format('Y-m-d H:i:s'),
                 'end' => $end->format('Y-m-d H:i:s')
