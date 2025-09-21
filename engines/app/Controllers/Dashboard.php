@@ -62,7 +62,7 @@ class Dashboard extends BaseController
             'composition_quantity' => (int)$compositionQuery,
             'transaction_count' => (int)($transactionQuery['transaction_count'] ?? 0),
             'revenue' => (int)($transactionQuery['revenue'] ?? 0),
-            'date' => $now->format('Y-m-d'),
+            'date' => $now->format('d-m-Y'),
         ];
 
         return api_respond_success($data, 'Dashboard data retrieved successfully');
