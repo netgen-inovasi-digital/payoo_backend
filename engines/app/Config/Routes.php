@@ -20,6 +20,9 @@ $routes->group('api/auth', ['namespace' => 'App\Controllers'], function ($routes
 // Protected Routes (dengan filter bearerAuth)
 $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth'], function ($routes) {
 
+    // Dashboard
+    $routes->get('dashboard', 'Dashboard::index'); // GET /api/dashboard
+
     // Account (User) Routes
     $routes->get('account/profile', 'User::profile');               // GET /api/account/profile
     $routes->put('account/profile', 'User::updateProfile');         // PUT /api/account/profile
