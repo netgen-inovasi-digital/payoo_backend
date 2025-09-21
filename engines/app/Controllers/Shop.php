@@ -57,7 +57,7 @@ class Shop extends BaseController
             'province'=> isset($json->province) ? trim($json->province) : null,
             'city'    => isset($json->city) ? trim($json->city) : null,
             'phone'   => trim($json->phone ?? ''),
-            'photo'   => trim($json->photo ?? null),
+            'photo'   => isset($json->photo) ? trim($json->photo) : null,
         ];
 
         if (!$this->model->validate($data)) {
@@ -104,7 +104,7 @@ class Shop extends BaseController
             'province'=> isset($json->province) ? trim($json->province) : ($existing['province'] ?? null),
             'city'    => isset($json->city) ? trim($json->city) : ($existing['city'] ?? null),
             'phone'   => isset($json->phone) ? trim($json->phone) : $existing['phone'],
-            'photo'   => array_key_exists('photo', $json) ? trim($json->photo) : ($existing['photo'] ?? null),
+            'photo'   => isset($json->photo) ? trim($json->photo) : ($existing['photo'] ?? null),
         ];
 
         // Preserve user_id (cannot change via update here)

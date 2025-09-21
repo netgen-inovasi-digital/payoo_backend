@@ -59,6 +59,7 @@ class CreateInitialTables extends Migration
             'id'            => ['type' => 'INT', 'auto_increment' => true],
             'shop_id'       => ['type' => 'INT'],
             'name'          => ['type' => 'VARCHAR', 'constraint' => 100],
+            'photo'      => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
             'cost_price'    => ['type' => 'DECIMAL', 'constraint' => '12,2'],
             'selling_price' => ['type' => 'DECIMAL', 'constraint' => '12,2'],
             'unit'          => ['type' => 'ENUM', 'constraint' => ['pcs', 'gr', 'lembar']],

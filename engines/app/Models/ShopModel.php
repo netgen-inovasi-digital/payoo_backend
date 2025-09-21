@@ -52,6 +52,7 @@ class ShopModel extends Model
         'province' => 'permit_empty|string|max_length[100]',
         'city'    => 'permit_empty|string|max_length[100]',
         'phone'   => 'permit_empty|string|max_length[100]',
+        'photo'   => 'permit_empty|string|max_length[255]',
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
