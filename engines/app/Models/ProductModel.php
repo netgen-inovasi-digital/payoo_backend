@@ -18,6 +18,8 @@ class ProductModel extends Model
         'name',
         'description',
         'photo',
+        'type',
+        'unit',
         'cost_price',
         'selling_price',
         'created_at',
@@ -46,10 +48,12 @@ class ProductModel extends Model
     // Validation
     protected $validationRules = [
         'shop_id'       => 'required|integer',
-        'category_id'   => 'required|integer',
+        'category_id'   => 'permit_empty|integer',
         'name'          => 'required|string|max_length[150]',
         'description'   => 'permit_empty|string',
         'photo'         => 'permit_empty|string|max_length[255]',
+        'type'          => 'required|in_list[product,composition]',
+        'unit'          => 'permit_empty|in_list[pcs,gr,lembar]',
         'cost_price'    => 'required|decimal',
         'selling_price' => 'required|decimal',
     ];
@@ -67,4 +71,15 @@ class ProductModel extends Model
     protected $afterFind      = [];
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
+
+    /**
+     * Get products by shop
+     */
+    public function getProductsByShop($shopId, $type = 'product')
+    {
+        return $this->where('shop_id', $shopId)
+                   ->where('type', $type)
+                   ->orderBy('id', 'DESC')
+                   ->findAll();
+    }
 }

@@ -30,7 +30,7 @@ class Composition extends BaseController
             return api_respond_success([], 'No shop assigned');
         }
 
-        $items = $this->model->where('shop_id', $shopId)->orderBy('id', 'DESC')->findAll();
+        $items = $this->model->getCompositionsByShop($shopId);
 
         // Ambil total stok per composition (in - out) dalam 1 query
         $db = Database::connect();
@@ -38,15 +38,15 @@ class Composition extends BaseController
         if (!empty($items)) {
             $compositionIds = array_column($items, 'id');
             $stockRows = $db->table('stocks')
-                ->select('composition_id, SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-                ->whereIn('composition_id', $compositionIds)
-                ->groupBy('composition_id')
+                ->select('product_id, SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
+                ->whereIn('product_id', $compositionIds)
+                ->groupBy('product_id')
                 ->get()
                 ->getResultArray();
         }
         $stockMap = [];
         foreach ($stockRows as $r) {
-            $stockMap[$r['composition_id']] = (int) $r['stock_total'];
+            $stockMap[$r['product_id']] = (int) $r['stock_total'];
         }
         foreach ($items as &$row) {
             $row['stock'] = $stockMap[$row['id']] ?? 0;
@@ -74,7 +74,7 @@ class Composition extends BaseController
         $db = Database::connect();
         $stock = $db->table('stocks')
             ->select('SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-            ->where('composition_id', $id)
+            ->where('product_id', $id)
             ->get()
             ->getRowArray();
         $item['stock'] = isset($stock['stock_total']) ? (int) $stock['stock_total'] : 0;
@@ -99,9 +99,12 @@ class Composition extends BaseController
         $data = [
             'shop_id'       => (int) $shopId,
             'name'          => trim($json->name ?? ''),
+            'description'   => trim($json->description ?? ''),
+            'photo'         => trim($json->photo ?? ''),
+            'type'          => 'composition',
+            'unit'          => $json->unit ?? null,
             'cost_price'    => $json->cost_price ?? null,
             'selling_price' => $json->selling_price ?? null,
-            'unit'          => $json->unit ?? null,
         ];
         if (!$this->model->validate($data)) {
             return api_respond_validation_error($this->model->errors());
@@ -139,9 +142,12 @@ class Composition extends BaseController
         $data = [
             'shop_id'       => $existing['shop_id'], // tidak boleh diubah lewat update
             'name'          => isset($json->name) ? trim($json->name) : $existing['name'],
+            'description'   => isset($json->description) ? trim($json->description) : $existing['description'],
+            'photo'         => isset($json->photo) ? trim($json->photo) : $existing['photo'],
+            'type'          => 'composition',
+            'unit'          => isset($json->unit) ? $json->unit : $existing['unit'],
             'cost_price'    => isset($json->cost_price) ? $json->cost_price : $existing['cost_price'],
             'selling_price' => isset($json->selling_price) ? $json->selling_price : $existing['selling_price'],
-            'unit'          => isset($json->unit) ? $json->unit : $existing['unit'],
         ];
         if (!$this->model->validate($data)) {
             return api_respond_validation_error($this->model->errors());
@@ -199,9 +205,12 @@ class Composition extends BaseController
         $compositionData = [
             'shop_id'       => (int) $shopId,
             'name'          => trim($json->name ?? ''),
+            'description'   => trim($json->description ?? ''),
+            'photo'         => trim($json->photo ?? ''),
+            'type'          => 'composition',
+            'unit'          => $json->unit ?? null,
             'cost_price'    => $json->cost_price ?? null,
             'selling_price' => $json->selling_price ?? null,
-            'unit'          => $json->unit ?? null,
         ];
 
         // Validate composition
@@ -238,7 +247,7 @@ class Composition extends BaseController
         if ($initialStock !== null && $initialStock > 0) {
             $stockModel = new StockModel();
             $stockData = [
-                'composition_id' => $compositionId,
+                'product_id' => $compositionId,
                 'quantity'       => (int) $initialStock,
                 'type'           => 'in',
                 'date'           => date('Y-m-d H:i:s'),
@@ -295,9 +304,12 @@ class Composition extends BaseController
         $compositionData = [
             'shop_id'       => $existing['shop_id'], // tidak boleh diubah
             'name'          => isset($json->name) ? trim($json->name) : $existing['name'],
+            'description'   => isset($json->description) ? trim($json->description) : $existing['description'],
+            'photo'         => isset($json->photo) ? trim($json->photo) : $existing['photo'],
+            'type'          => 'composition',
+            'unit'          => isset($json->unit) ? $json->unit : $existing['unit'],
             'cost_price'    => isset($json->cost_price) ? $json->cost_price : $existing['cost_price'],
             'selling_price' => isset($json->selling_price) ? $json->selling_price : $existing['selling_price'],
-            'unit'          => isset($json->unit) ? $json->unit : $existing['unit'],
         ];
 
         // Validate composition
@@ -316,7 +328,7 @@ class Composition extends BaseController
             $db = Database::connect();
             $currentStockQuery = $db->table('stocks')
                 ->select('SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-                ->where('composition_id', $id)
+                ->where('product_id', $id)
                 ->get()
                 ->getRowArray();
             
@@ -336,7 +348,7 @@ class Composition extends BaseController
             if ($stockDifference != 0) {
                 $stockModel = new StockModel();
                 $stockData = [
-                    'composition_id' => $id,
+                    'product_id' => $id,
                     'quantity'       => abs($stockDifference),
                     'type'           => $stockDifference > 0 ? 'in' : 'out',
                     'date'           => date('Y-m-d H:i:s'),
@@ -368,7 +380,7 @@ class Composition extends BaseController
             $db = Database::connect();
             $stockQuery = $db->table('stocks')
                 ->select('SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-                ->where('composition_id', $id)
+                ->where('product_id', $id)
                 ->get()
                 ->getRowArray();
             

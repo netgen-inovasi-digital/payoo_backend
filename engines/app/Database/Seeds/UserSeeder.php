@@ -10,22 +10,22 @@ class UserSeeder extends Seeder
     {
         $data = [
             [
-                'name' => 'Admin',
-                'email' => 'admin@payoo.com',
+                'name' => 'Ridha',
+                'email' => 'ridha@gmail.com',
                 'phone' => '081234567890',
-                'password' => password_hash('admin123', PASSWORD_DEFAULT),
+                'password' => password_hash('12345678', PASSWORD_DEFAULT),
                 'photo' => null,
-                'role' => 'owner',
+                'role' => 'user',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ],
             [
                 'name' => 'Employee Test',
-                'email' => 'employee@payoo.com',
+                'email' => 'dijah@payoo.com',
                 'phone' => '081234567891',
                 'password' => password_hash('employee123', PASSWORD_DEFAULT),
                 'photo' => null,
-                'role' => 'employee',
+                'role' => 'user',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ],

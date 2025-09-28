@@ -19,6 +19,9 @@ class OrderModel extends Model
         'notes',
         'total',
         'amount_paid',
+        'change_money',
+        'tax',
+        'payment_method',
         'created_at',
         'updated_at'
     ];
@@ -27,11 +30,13 @@ class OrderModel extends Model
     protected bool $updateOnlyChanged = true;
 
     protected array $casts = [
-        'id'          => 'integer',
-        'user_id'     => 'integer',
-        'shop_id'     => 'integer',
-        'total'       => 'float',
-        'amount_paid' => 'float',
+        'id'           => 'integer',
+        'user_id'      => 'integer',
+        'shop_id'      => 'integer',
+        'total'        => 'float',
+        'amount_paid'  => 'float',
+        'change_money' => 'float',
+        'tax'          => 'float',
     ];
     protected array $castHandlers = [];
 
@@ -44,18 +49,17 @@ class OrderModel extends Model
 
     // Validation
     protected $validationRules      = [
-        'user_id'     => 'required|integer',
-        'shop_id'     => 'required|integer',
-        'status'      => 'required|in_list[pending,paid,shipped,completed,cancelled]',
-        'notes'       => 'permit_empty|string',
-        'total'       => 'required|decimal',
-        'amount_paid' => 'permit_empty|decimal',
+        'user_id'        => 'required|integer',
+        'shop_id'        => 'required|integer',
+        'status'         => 'required|string|max_length[20]',
+        'notes'          => 'permit_empty|string',
+        'total'          => 'required|decimal',
+        'amount_paid'    => 'permit_empty|decimal',
+        'change_money'   => 'permit_empty|decimal',
+        'tax'            => 'permit_empty|decimal',
+        'payment_method' => 'permit_empty|string|max_length[20]',
     ];
-    protected $validationMessages   = [
-        'status' => [
-            'in_list' => 'Status must be one of: pending, paid, shipped, completed, cancelled'
-        ]
-    ];
+    protected $validationMessages   = [];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
 
