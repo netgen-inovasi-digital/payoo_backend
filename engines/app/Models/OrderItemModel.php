@@ -54,11 +54,30 @@ class OrderItemModel extends Model
     // Callbacks
     protected $allowCallbacks = true;
     protected $beforeInsert   = [];
-    protected $afterInsert    = [];
+    protected $afterInsert    = ['updateStock'];
     protected $beforeUpdate   = [];
     protected $afterUpdate    = [];
     protected $beforeFind     = [];
     protected $afterFind      = [];
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
+
+    /**
+     * Update stock after order item insert
+     */
+    protected function updateStock(array $data)
+    {
+        if (isset($data['id']) && $data['result']) {
+            $item = $this->find($data['id']);
+            if ($item) {
+                $stockModel = new \App\Models\StockModel();
+                $stockModel->addStockOut(
+                    $item['product_id'], 
+                    $item['quantity'], 
+                    'Order #' . $item['order_id']
+                );
+            }
+        }
+        return $data;
+    }
 }

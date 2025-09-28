@@ -43,6 +43,9 @@ class Order extends BaseController
             'notes'       => $json->notes ?? null,
             'total'       => $json->total ?? null,
             'amount_paid' => $json->amount_paid ?? 0,
+            'change_money' => $json->total ? (($json->amount_paid ?? 0) - $json->total) : 0,
+            'tax'         => $json->tax ?? 0,
+            'payment_method' => $json->payment_method ?? 'cash',
         ];
         $orderItems = $json->order_items ?? [];
         if (!$this->model->validate($data)) {
@@ -85,9 +88,10 @@ class Order extends BaseController
             $insertedItems[] = $orderItemModel->find($orderItemModel->getInsertID());
         }
 
-        // Reduce stock for compositions used by ordered products
+        // Reduce stock based on product type
         $pcModel = new ProductCompositionModel();
         $stockModel = new StockModel();
+        $productModel = new \App\Models\ProductModel();
         
         foreach ($orderItems as $rawItem) {
             if (is_object($rawItem)) $rawItem = (array)$rawItem;
@@ -99,28 +103,58 @@ class Order extends BaseController
                 continue;
             }
 
-            // Get compositions for this product
-            $comps = $pcModel->getCompositionsByProduct($productId);
-            if (empty($comps)) {
-                continue; // product has no compositions -> no stock change
+            // Get product details to check type
+            $product = $productModel->find($productId);
+            if (!$product) {
+                continue;
             }
 
-            foreach ($comps as $comp) {
-                $compId = $comp['composition_id'] ?? null;
-                $perProdQty = $comp['quantity'] ?? null;
-                
-                if (!$compId || !$perProdQty) {
-                    continue;
+            $productType = $product['type'] ?? null;
+            
+            if ($productType === 'product') {
+                // For finished products: reduce stock of compositions/raw materials
+                $comps = $pcModel->getCompositionsByProduct($productId);
+                if (empty($comps)) {
+                    continue; // product has no compositions -> no stock change
                 }
 
-                // Calculate total quantity to reduce from stock
-                $outQty = (int)$perProdQty * $itemQty;
-                
+                foreach ($comps as $comp) {
+                    $compId = $comp['composition_id'] ?? null;
+                    $perProdQty = $comp['quantity'] ?? null;
+                    
+                    if (!$compId || !$perProdQty) {
+                        continue;
+                    }
+
+                    // Calculate total quantity to reduce from stock
+                    $outQty = (int)$perProdQty * $itemQty;
+                    
+                    $stockData = [
+                        'product_id' => (int)$compId,
+                        'quantity'   => $outQty,
+                        'type'       => 'out',
+                        'notes'      => 'Order #' . $orderId . ' (BOM)',
+                        'date'       => date('Y-m-d H:i:s'),
+                    ];
+
+                    if (!$stockModel->validate($stockData)) {
+                        $db->transRollback();
+                        return api_respond_validation_error(['stock' => $stockModel->errors()]);
+                    }
+                    
+                    if (!$stockModel->insert($stockData)) {
+                        $db->transRollback();
+                        return api_respond_server_error("Failed to reduce stock for composition {$compId}");
+                    }
+                }
+            } elseif ($productType === 'composition') {
+                // For compositions: reduce stock directly
                 $stockData = [
-                    'composition_id' => (int)$compId,
-                    'quantity'       => $outQty,
-                    'type'           => 'out',
-                    'date'           => date('Y-m-d H:i:s'),
+                    'product_id' => (int)$productId,
+                    'quantity'   => $itemQty,
+                    'type'       => 'out',
+                    'notes'      => 'Order #' . $orderId . ' (Direct)',
+                    'date'       => date('Y-m-d H:i:s'),
                 ];
 
                 if (!$stockModel->validate($stockData)) {
@@ -130,7 +164,7 @@ class Order extends BaseController
                 
                 if (!$stockModel->insert($stockData)) {
                     $db->transRollback();
-                    return api_respond_server_error("Failed to reduce stock for composition {$compId}");
+                    return api_respond_server_error("Failed to reduce stock for composition {$productId}");
                 }
             }
         }

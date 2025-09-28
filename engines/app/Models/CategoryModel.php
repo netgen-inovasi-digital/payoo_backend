@@ -53,6 +53,22 @@ class CategoryModel extends Model
     protected $afterUpdate    = [];
     protected $beforeFind     = [];
     protected $afterFind      = [];
-    protected $beforeDelete   = [];
+    protected $beforeDelete   = ['checkCategoryUsage'];
     protected $afterDelete    = [];
+
+    /**
+     * Check if category is used by products before delete
+     */
+    protected function checkCategoryUsage(array $data)
+    {
+        if (isset($data['id'])) {
+            $productModel = new \App\Models\ProductModel();
+            $count = $productModel->where('category_id', $data['id'][0])->countAllResults();
+            
+            if ($count > 0) {
+                throw new \Exception('Cannot delete category. It is being used by ' . $count . ' product(s).');
+            }
+        }
+        return $data;
+    }
 }
