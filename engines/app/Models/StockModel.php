@@ -89,7 +89,7 @@ class StockModel extends Model
      */
     public function getStockMovementsByShop($shopId, $typeFilter = null)
     {
-        $builder = $this->select('stocks.*, products.name as product_name')
+        $builder = $this->select('stocks.*, products.name as product_name, products.type as product_type')
                        ->join('products', 'products.id = stocks.product_id')
                        ->where('products.shop_id', $shopId);
         
