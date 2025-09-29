@@ -52,13 +52,13 @@ class CompositionModel extends Model
         'description'   => 'permit_empty|string',
         'photo'         => 'permit_empty|string|max_length[255]',
         'type'          => 'required|in_list[composition]',
-        'unit'          => 'permit_empty|in_list[pcs,gr,lembar]',
+        'unit'          => 'permit_empty|in_list[pcs,gr,kg,ml,liter,lembar,slice,butir,pack,botol]',
         'cost_price'    => 'required|decimal',
         'selling_price' => 'required|decimal',
     ];
     protected $validationMessages = [
         'unit' => [
-            'in_list' => 'Unit must be one of: pcs, gr, lembar'
+            'in_list' => 'Unit must be one of: pcs, gr, kg, ml, liter, lembar, slice, butir, pack, botol'
         ]
     ];
     protected $skipValidation       = false;
