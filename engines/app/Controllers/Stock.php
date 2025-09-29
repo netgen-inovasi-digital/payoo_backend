@@ -87,7 +87,7 @@ class Stock extends BaseController
         return api_respond_created($created, 'Stock transaction recorded successfully');
     }
 
-    // GET /api/stocks/shop/{shop_id}
+    // GET /api/stocks/shop/{shop_id}?type=in|out
     public function getByShop($shopId = null)
     {
         $payload = $this->decodeToken();
@@ -100,7 +100,15 @@ class Stock extends BaseController
             return api_respond_unauthorized('Access denied to this shop');
         }
         
-        $movements = $this->model->getStockMovementsByShop($shopId);
+        // Get query parameter for type filter
+        $typeFilter = $this->request->getGet('type');
+        
+        // Validate type parameter if provided
+        if ($typeFilter && !in_array($typeFilter, ['in', 'out'])) {
+            return api_respond_validation_error(['type' => 'Type must be either "in" or "out"']);
+        }
+        
+        $movements = $this->model->getStockMovementsByShop($shopId, $typeFilter);
         
         return api_respond_success($movements, 'Stock movements for shop');
     }

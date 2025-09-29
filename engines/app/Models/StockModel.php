@@ -87,13 +87,19 @@ class StockModel extends Model
     /**
      * Get stock movements by shop
      */
-    public function getStockMovementsByShop($shopId)
+    public function getStockMovementsByShop($shopId, $typeFilter = null)
     {
-        return $this->select('stocks.*, products.name as product_name')
-                   ->join('products', 'products.id = stocks.product_id')
-                   ->where('products.shop_id', $shopId)
-                   ->orderBy('stocks.date', 'DESC')
-                   ->findAll();
+        $builder = $this->select('stocks.*, products.name as product_name')
+                       ->join('products', 'products.id = stocks.product_id')
+                       ->where('products.shop_id', $shopId);
+        
+        // Apply type filter if provided
+        if ($typeFilter) {
+            $builder->where('stocks.type', $typeFilter);
+        }
+        
+        return $builder->orderBy('stocks.date', 'DESC')
+                      ->findAll();
     }
 
     /**
