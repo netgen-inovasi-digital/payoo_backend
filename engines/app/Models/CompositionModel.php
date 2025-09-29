@@ -32,7 +32,7 @@ class CompositionModel extends Model
     protected array $casts = [
         'id'            => 'integer',
         'shop_id'       => 'integer',
-        'category_id'   => 'integer',
+        'category_id'   => '?integer',
         'cost_price'    => 'float',
         'selling_price' => 'float',
     ];
