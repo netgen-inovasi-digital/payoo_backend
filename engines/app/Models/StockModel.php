@@ -135,4 +135,46 @@ class StockModel extends Model
         return $this->insert($data);
     }
 
+    /**
+     * Get all products with stock information by shop
+     */
+    public function getProductsWithStockByShop($shopId)
+    {
+        $db = \Config\Database::connect();
+        
+        // Get all products for the shop
+        $products = $db->table('products')
+                      ->where('shop_id', $shopId)
+                      ->orderBy('id', 'DESC')
+                      ->get()
+                      ->getResultArray();
+
+        if (empty($products)) {
+            return [];
+        }
+
+        // Get stock totals for all products in one query
+        $productIds = array_column($products, 'id');
+        $stockRows = $db->table('stocks')
+                       ->select('product_id, SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
+                       ->whereIn('product_id', $productIds)
+                       ->groupBy('product_id')
+                       ->get()
+                       ->getResultArray();
+
+        // Create stock mapping
+        $stockMap = [];
+        foreach ($stockRows as $r) {
+            $stockMap[$r['product_id']] = (int) $r['stock_total'];
+        }
+
+        // Add stock information to each product
+        foreach ($products as &$product) {
+            $product['stock'] = $stockMap[$product['id']] ?? 0;
+        }
+        unset($product);
+
+        return $products;
+    }
+
 }

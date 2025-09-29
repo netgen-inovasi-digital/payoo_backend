@@ -112,4 +112,27 @@ class Stock extends BaseController
         
         return api_respond_success($movements, 'Stock movements for shop');
     }
+
+    // GET /api/stocks/products/shop/{shop_id}
+    public function getProductsByShop($shopId = null)
+    {
+        $payload = $this->decodeToken();
+        if (!$payload) {
+            return api_respond_unauthorized('Invalid token');
+        }
+        
+        $tokenShopId = $payload->shop_id ?? null;
+        if (!$tokenShopId || $tokenShopId != $shopId) {
+            return api_respond_unauthorized('Access denied to this shop');
+        }
+
+        // Get products with stock information using StockModel
+        $items = $this->model->getProductsWithStockByShop($shopId);
+
+        if (empty($items)) {
+            return api_respond_success([], 'No products found for this shop');
+        }
+
+        return api_respond_success($items, 'Products with stock information');
+    }
 }

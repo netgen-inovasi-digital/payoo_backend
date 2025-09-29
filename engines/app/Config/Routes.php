@@ -80,6 +80,7 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     $routes->get('stocks/(:segment)', 'Stock::show/$1');            // GET /api/stocks/{product_id}
     $routes->post('stocks', 'Stock::create');                       // POST /api/stocks
     $routes->get('stocks/shop/(:segment)', 'Stock::getByShop/$1');  // GET /api/stocks/shop/{shop_id}
+    $routes->get('stocks/products/shop/(:segment)', 'Stock::getProductsByShop/$1'); // GET /api/stocks/products/shop/{shop_id}
 
     // Routes untuk Orders
     $routes->post('orders', 'Order::create');               // POST /api/orders
