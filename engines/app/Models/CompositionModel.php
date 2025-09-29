@@ -50,6 +50,7 @@ class CompositionModel extends Model
         'shop_id'       => 'required|integer',
         'name'          => 'required|string|max_length[150]',
         'description'   => 'permit_empty|string',
+        'category_id'   => 'permit_empty|integer',
         'photo'         => 'permit_empty|string|max_length[255]',
         'type'          => 'required|in_list[composition]',
         'unit'          => 'permit_empty|in_list[pcs,gr,kg,ml,liter,lembar,slice,butir,pack,botol]',

@@ -100,6 +100,7 @@ class Composition extends BaseController
             'shop_id'       => (int) $shopId,
             'name'          => trim($json->name ?? ''),
             'description'   => trim($json->description ?? ''),
+            'category_id'   => $json->category_id ?? null,
             'photo'         => trim($json->photo ?? ''),
             'type'          => 'composition',
             'unit'          => $json->unit ?? null,
@@ -143,6 +144,7 @@ class Composition extends BaseController
             'shop_id'       => $existing['shop_id'], // tidak boleh diubah lewat update
             'name'          => isset($json->name) ? trim($json->name) : $existing['name'],
             'description'   => isset($json->description) ? trim($json->description) : $existing['description'],
+            'category_id'   => isset($json->category_id) ? $json->category_id : $existing['category_id'],
             'photo'         => isset($json->photo) ? trim($json->photo) : $existing['photo'],
             'type'          => 'composition',
             'unit'          => isset($json->unit) ? $json->unit : $existing['unit'],
