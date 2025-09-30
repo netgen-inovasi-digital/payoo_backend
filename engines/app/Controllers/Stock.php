@@ -87,7 +87,7 @@ class Stock extends BaseController
         return api_respond_created($created, 'Stock transaction recorded successfully');
     }
 
-    // GET /api/stocks/shop?type=in|out
+    // GET /api/stocks?type=in|out
     public function getByShop()
     {
         $payload = $this->decodeToken();
