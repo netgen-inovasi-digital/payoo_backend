@@ -87,17 +87,17 @@ class Stock extends BaseController
         return api_respond_created($created, 'Stock transaction recorded successfully');
     }
 
-    // GET /api/stocks/shop/{shop_id}?type=in|out
-    public function getByShop($shopId = null)
+    // GET /api/stocks/shop?type=in|out
+    public function getByShop()
     {
         $payload = $this->decodeToken();
         if (!$payload) {
             return api_respond_unauthorized('Invalid token');
         }
         
-        $tokenShopId = $payload->shop_id ?? null;
-        if (!$tokenShopId || $tokenShopId != $shopId) {
-            return api_respond_unauthorized('Access denied to this shop');
+        $shopId = $payload->shop_id ?? null;
+        if (!$shopId) {
+            return api_respond_unauthorized('No shop assigned to user');
         }
         
         // Get query parameter for type filter
@@ -113,17 +113,17 @@ class Stock extends BaseController
         return api_respond_success($movements, 'Stock movements for shop');
     }
 
-    // GET /api/stocks/products/shop/{shop_id}
-    public function getProductsByShop($shopId = null)
+    // GET /api/stocks/products/shop
+    public function getProductsByShop()
     {
         $payload = $this->decodeToken();
         if (!$payload) {
             return api_respond_unauthorized('Invalid token');
         }
         
-        $tokenShopId = $payload->shop_id ?? null;
-        if (!$tokenShopId || $tokenShopId != $shopId) {
-            return api_respond_unauthorized('Access denied to this shop');
+        $shopId = $payload->shop_id ?? null;
+        if (!$shopId) {
+            return api_respond_unauthorized('No shop assigned to user');
         }
 
         // Get products with stock information using StockModel

@@ -79,8 +79,8 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     // Routes untuk Stocks
     $routes->get('stocks/(:segment)', 'Stock::show/$1');            // GET /api/stocks/{product_id}
     $routes->post('stocks', 'Stock::create');                       // POST /api/stocks
-    $routes->get('stocks/shop/(:segment)', 'Stock::getByShop/$1');  // GET /api/stocks/shop/{shop_id}
-    $routes->get('stocks/products/shop/(:segment)', 'Stock::getProductsByShop/$1'); // GET /api/stocks/products/shop/{shop_id}
+    $routes->get('stocks/shop', 'Stock::getByShop');                // GET /api/stocks/shop
+    $routes->get('stocks/products/shop', 'Stock::getProductsByShop'); // GET /api/stocks/products/shop
 
     // Routes untuk Orders
     $routes->post('orders', 'Order::create');               // POST /api/orders
