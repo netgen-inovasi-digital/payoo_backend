@@ -96,18 +96,20 @@ class Auth extends BaseController
             return api_respond_unauthorized('Invalid credentials');
         }
 
+        $shop_id = $this->getShopIdByUserId($user['id']);
         $jwtConfig = new JWTConfig();
         $payload = [
             'sub' => $user['id'],
             'name' => $user['name'],
             'email' => $user['email'],
             'role' => $user['role'],
-            'shop_id' => $this->getShopIdByUserId($user['id'])
+            'shop_id' => $shop_id
         ];
 
         try {
             $token = jwt_encode($payload, $jwtConfig->secret, $jwtConfig->ttl);
             $userResponse = $user;
+            $userResponse['shop_id'] = $shop_id;
             unset($userResponse['password']);
             return api_respond_success([
                 'token' => $token,
