@@ -192,8 +192,9 @@ class Order extends BaseController
         // Join orders dan order_items dalam satu query
         $db = Database::connect();
         $builder = $db->table('orders');
-        $builder->select('orders.*, order_items.id as item_id, order_items.product_id, order_items.quantity, order_items.price');
+        $builder->select('orders.*, order_items.id as item_id, order_items.product_id, order_items.quantity, order_items.price, products.name as product_name');
         $builder->join('order_items', 'order_items.order_id = orders.id', 'left');
+        $builder->join('products', 'products.id = order_items.product_id', 'left');
         $builder->where('orders.id', $id);
         $result = $builder->get()->getResultArray();
         if (!$result || count($result) === 0) {
@@ -217,6 +218,7 @@ class Order extends BaseController
                 $order['order_items'][] = [
                     'id'         => $row['item_id'],
                     'product_id' => $row['product_id'],
+                    'name'       => $row['product_name'],
                     'quantity'   => $row['quantity'],
                     'price'      => $row['price'],
                 ];
