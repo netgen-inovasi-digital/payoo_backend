@@ -32,9 +32,10 @@ class Dashboard extends BaseController
 
         $db = Database::connect();
 
-        // Get product quantity
+        // Get product quantity (type = 'product')
         $productQuery = $db->table('products')
             ->where('shop_id', $shopId)
+            ->where('type', 'product')
             ->countAllResults();
 
         // Get category quantity
@@ -42,9 +43,10 @@ class Dashboard extends BaseController
             ->where('shop_id', $shopId)
             ->countAllResults();
 
-        // Get composition quantity
-        $compositionQuery = $db->table('compositions')
+        // Get composition quantity (type = 'composition')
+        $compositionQuery = $db->table('products')
             ->where('shop_id', $shopId)
+            ->where('type', 'composition')
             ->countAllResults();
 
         // Get transaction count and revenue for today
