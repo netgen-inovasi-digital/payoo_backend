@@ -141,10 +141,10 @@ class Dashboard extends BaseController
             ],
             'monthly_sales' => $monthlySales,
             'statistics' => [
-                'basis' => 'completed_orders',
+                'basis' => 'all_orders',
                 'period' => 'monthly',
                 'series' => $statistics,
-                'note' => 'Berdasarkan total pesanan selesai'
+                'note' => 'Berdasarkan semua pesanan'
             ]
         ];
 
@@ -157,7 +157,6 @@ class Dashboard extends BaseController
         $orderMetrics = $db->table('orders')
             ->select('COUNT(*) as transactions, COALESCE(SUM(total), 0) as revenue')
             ->where('shop_id', $shopId)
-            ->where('status', 'completed')
             ->where('YEAR(created_at)', $year)
             ->where('MONTH(created_at)', $month)
             ->get()
@@ -168,7 +167,6 @@ class Dashboard extends BaseController
             ->select('COALESCE(SUM(oi.quantity), 0) as items_sold')
             ->join('orders o', 'o.id = oi.order_id')
             ->where('o.shop_id', $shopId)
-            ->where('o.status', 'completed')
             ->where('YEAR(o.created_at)', $year)
             ->where('MONTH(o.created_at)', $month)
             ->get()
@@ -212,7 +210,6 @@ class Dashboard extends BaseController
             $result = $db->table('orders')
                 ->select('COUNT(*) as transactions, COALESCE(SUM(total), 0) as revenue')
                 ->where('shop_id', $shopId)
-                ->where('status', 'completed')
                 ->where('YEAR(created_at)', $year)
                 ->where('MONTH(created_at)', $month)
                 ->get()
@@ -238,7 +235,6 @@ class Dashboard extends BaseController
             $orderCount = $db->table('orders')
                 ->selectCount('id', 'orders')
                 ->where('shop_id', $shopId)
-                ->where('status', 'completed')
                 ->where('YEAR(created_at)', $year)
                 ->where('MONTH(created_at)', $month)
                 ->get()
@@ -249,7 +245,6 @@ class Dashboard extends BaseController
                 ->select('COALESCE(SUM(oi.quantity), 0) as items_sold')
                 ->join('orders o', 'o.id = oi.order_id')
                 ->where('o.shop_id', $shopId)
-                ->where('o.status', 'completed')
                 ->where('YEAR(o.created_at)', $year)
                 ->where('MONTH(o.created_at)', $month)
                 ->get()
