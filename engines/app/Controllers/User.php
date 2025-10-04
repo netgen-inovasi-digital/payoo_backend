@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
+use App\Models\ShopModel;
 use App\Models\UserModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
@@ -51,6 +52,8 @@ class User extends BaseController
             return api_respond_server_error('Failed to update profile');
         }
 
+        $shopId = $this->getShopIdByUserId($user['id']);
+        $data['shop_id'] = $shopId;
         return api_respond_success($data, 'Profile updated');
     }
 
@@ -109,5 +112,12 @@ class User extends BaseController
             return $validation->getErrors();
         }
         return null;
+    }
+
+    // ambil shop pertama milik user (jika ada) untuk dimasukkan ke payload
+    private function getShopIdByUserId($userId)
+    {
+        $shop = (new ShopModel())->where('user_id', $userId)->orderBy('id', 'ASC')->first();
+        return $shop['id'] ?? null;
     }
 }
