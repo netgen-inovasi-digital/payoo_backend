@@ -22,6 +22,7 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
 
     // Dashboard
     $routes->get('dashboard', 'Dashboard::index'); // GET /api/dashboard
+    $routes->get('dashboard/web', 'Dashboard::dashboardWeb'); // GET /api/dashboard/web
 
     // Account (User) Routes
     $routes->get('account/profile', 'User::profile');               // GET /api/account/profile
