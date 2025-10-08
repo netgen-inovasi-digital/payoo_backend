@@ -103,6 +103,59 @@ class StockModel extends Model
     }
 
     /**
+     * Get paginated stock movements by shop with filters
+     */
+    public function getStockMovementsByShopPaginated($shopId, $filters = [], $limit = 20, $offset = 0)
+    {
+        // Build base query for data
+        $builder = $this->select('stocks.*, products.name as product_name, products.type as product_type')
+                       ->join('products', 'products.id = stocks.product_id')
+                       ->where('products.shop_id', $shopId);
+        
+        // Apply filters
+        $this->applyStockFilters($builder, $filters);
+        
+        // Get total count for pagination
+        $totalBuilder = clone $builder;
+        $total = $totalBuilder->countAllResults(false);
+        
+        // Get paginated data
+        $data = $builder->orderBy('stocks.date', 'DESC')
+                       ->limit($limit, $offset)
+                       ->findAll();
+        
+        return [
+            'data' => $data,
+            'total' => $total
+        ];
+    }
+
+    /**
+     * Apply filters to stock movements query
+     */
+    private function applyStockFilters($builder, $filters)
+    {
+        // Filter by transaction type (in/out)
+        if (!empty($filters['type'])) {
+            $builder->where('stocks.type', $filters['type']);
+        }
+        
+        // Search by product name (partial match, case insensitive)
+        if (!empty($filters['search'])) {
+            $builder->like('products.name', $filters['search']);
+        }
+        
+        // Date range filter - filter stock transactions within date range
+        if (!empty($filters['date_start'])) {
+            $builder->where('DATE(stocks.date) >=', $filters['date_start']);
+        }
+        
+        if (!empty($filters['date_end'])) {
+            $builder->where('DATE(stocks.date) <=', $filters['date_end']);
+        }
+    }
+
+    /**
      * Add stock in
      */
     public function addStockIn($productId, $quantity, $buyPrice = null, $notes = null)
