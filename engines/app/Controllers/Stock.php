@@ -87,7 +87,7 @@ class Stock extends BaseController
         return api_respond_created($created, 'Stock transaction recorded successfully');
     }
 
-    // GET /api/stocks?type=in|out
+    // GET /api/stocks?type=in|out&page=1&limit=20&search=product_name&date_start=2025-01-01&date_end=2025-12-31
     public function getByShop()
     {
         $payload = $this->decodeToken();
@@ -100,17 +100,55 @@ class Stock extends BaseController
             return api_respond_unauthorized('No shop assigned to user');
         }
         
-        // Get query parameter for type filter
-        $typeFilter = $this->request->getGet('type');
+        // Get pagination parameters
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $limit = (int) ($this->request->getGet('limit') ?? 20);
         
-        // Validate type parameter if provided
-        if ($typeFilter && !in_array($typeFilter, ['in', 'out'])) {
+        // Get filter parameters
+        $filters = [
+            'type' => $this->request->getGet('type'), // Filter by transaction type (in/out)
+            'search' => $this->request->getGet('search'), // Search by product name
+            'date_start' => $this->request->getGet('date_start'), // Filter by date range start
+            'date_end' => $this->request->getGet('date_end'), // Filter by date range end
+        ];
+        
+        // Validate parameters
+        if ($page < 1) {
+            $page = 1;
+        }
+        
+        if ($limit < 1 || $limit > 100) {
+            $limit = 20; // Default limit 20, max 100 per page
+        }
+        
+        // Validate type filter
+        if ($filters['type'] && !in_array($filters['type'], ['in', 'out'])) {
             return api_respond_validation_error(['type' => 'Type must be either "in" or "out"']);
         }
         
-        $movements = $this->model->getStockMovementsByShop($shopId, $typeFilter);
+        // Validate date format
+        if ($filters['date_start'] && !$this->isValidDate($filters['date_start'])) {
+            return api_respond_validation_error(['date_start' => 'Date start must be in YYYY-MM-DD format']);
+        }
         
-        return api_respond_success($movements, 'Stock movements for shop');
+        if ($filters['date_end'] && !$this->isValidDate($filters['date_end'])) {
+            return api_respond_validation_error(['date_end' => 'Date end must be in YYYY-MM-DD format']);
+        }
+        
+        $offset = ($page - 1) * $limit;
+
+        // Get paginated movements and total count with filters
+        $result = $this->model->getStockMovementsByShopPaginated($shopId, $filters, $limit, $offset);
+        
+        return api_respond_success($result['data'], 'Stock movements for shop', 200, [
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $limit,
+                'total' => $result['total'],
+                'total_pages' => ceil($result['total'] / $limit)
+            ],
+            'filters' => array_filter($filters) // Show applied filters in response
+        ]);
     }
 
     // GET /api/stocks/products/shop
@@ -134,5 +172,16 @@ class Stock extends BaseController
         }
 
         return api_respond_success($items, 'Products with stock information');
+    }
+
+    /**
+     * Validate date format (YYYY-MM-DD)
+     */
+    private function isValidDate($date)
+    {
+        if (!$date) return false;
+        
+        $d = \DateTime::createFromFormat('Y-m-d', $date);
+        return $d && $d->format('Y-m-d') === $date;
     }
 }
