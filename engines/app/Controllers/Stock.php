@@ -87,7 +87,7 @@ class Stock extends BaseController
         return api_respond_created($created, 'Stock transaction recorded successfully');
     }
 
-    // GET /api/stocks?type=in|out
+    // GET /api/stocks?type=in|out&page=1&limit=20
     public function getByShop()
     {
         $payload = $this->decodeToken();
@@ -100,20 +100,40 @@ class Stock extends BaseController
             return api_respond_unauthorized('No shop assigned to user');
         }
         
-        // Get query parameter for type filter
+        // Get query parameters
         $typeFilter = $this->request->getGet('type');
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $limit = (int) ($this->request->getGet('limit') ?? 20);
         
-        // Validate type parameter if provided
+        // Validate parameters
         if ($typeFilter && !in_array($typeFilter, ['in', 'out'])) {
             return api_respond_validation_error(['type' => 'Type must be either "in" or "out"']);
         }
         
-        $movements = $this->model->getStockMovementsByShop($shopId, $typeFilter);
+        if ($page < 1) {
+            $page = 1;
+        }
         
-        return api_respond_success($movements, 'Stock movements for shop');
+        if ($limit < 1 || $limit > 100) {
+            $limit = 20; // Default limit, max 100 per page
+        }
+        
+        $offset = ($page - 1) * $limit;
+        
+        // Get paginated movements and total count
+        $result = $this->model->getStockMovementsByShopPaginated($shopId, $typeFilter, $limit, $offset);
+        
+        return api_respond_success($result['data'], 'Stock movements for shop', 200, [
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $limit,
+                'total' => $result['total'],
+                'total_pages' => ceil($result['total'] / $limit)
+            ]
+        ]);
     }
 
-    // GET /api/stocks/products/shop
+    // GET /api/stocks/products/shop?page=1&limit=10&search=name&product_type=product&type=composition&product_name=tepung&date_start=2025-01-01&date_end=2025-12-31
     public function getProductsByShop()
     {
         $payload = $this->decodeToken();
@@ -126,13 +146,77 @@ class Stock extends BaseController
             return api_respond_unauthorized('No shop assigned to user');
         }
 
-        // Get products with stock information using StockModel
-        $items = $this->model->getProductsWithStockByShop($shopId);
-
-        if (empty($items)) {
-            return api_respond_success([], 'No products found for this shop');
+        // Get pagination parameters
+        $page = (int) ($this->request->getGet('page') ?? 1);
+        $limit = (int) ($this->request->getGet('limit') ?? 20);
+        
+        // Get filter parameters
+        $filters = [
+            'search' => $this->request->getGet('search'), // Search by product name
+            'product_type' => $this->request->getGet('product_type'), // Filter by product type (product/composition)
+            'type' => $this->request->getGet('type'), // Alias for product_type
+            'product_name' => $this->request->getGet('product_name'), // Filter by specific product name
+            'date_start' => $this->request->getGet('date_start'), // Filter by date range start
+            'date_end' => $this->request->getGet('date_end'), // Filter by date range end
+        ];
+        
+        // Validate parameters
+        if ($page < 1) {
+            $page = 1;
         }
+        
+        if ($limit < 1 || $limit > 100) {
+            $limit = 20; // Default limit 20, max 100 per page
+        }
+        
+        // Validate product_type filter
+        if ($filters['product_type'] && !in_array($filters['product_type'], ['product', 'composition'])) {
+            return api_respond_validation_error(['product_type' => 'Product type must be either "product" or "composition"']);
+        }
+        
+        // Validate type filter (alias for product_type)
+        if ($filters['type'] && !in_array($filters['type'], ['product', 'composition'])) {
+            return api_respond_validation_error(['type' => 'Type must be either "product" or "composition"']);
+        }
+        
+        // Use 'type' as 'product_type' if product_type is not set
+        if (!$filters['product_type'] && $filters['type']) {
+            $filters['product_type'] = $filters['type'];
+        }
+        
+        // Validate date format
+        if ($filters['date_start'] && !$this->isValidDate($filters['date_start'])) {
+            return api_respond_validation_error(['date_start' => 'Date start must be in YYYY-MM-DD format']);
+        }
+        
+        if ($filters['date_end'] && !$this->isValidDate($filters['date_end'])) {
+            return api_respond_validation_error(['date_end' => 'Date end must be in YYYY-MM-DD format']);
+        }
+        
+        $offset = ($page - 1) * $limit;
 
-        return api_respond_success($items, 'Products with stock information');
+        // Get products with stock information using StockModel with pagination and filters
+        $result = $this->model->getProductsWithStockByShopFiltered($shopId, $filters, $limit, $offset);
+
+        return api_respond_success($result['data'], 'Products with stock information', 200, [
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $limit,
+                'total' => $result['total'],
+                'total_pages' => ceil($result['total'] / $limit)
+            ],
+            'filters' => array_filter($filters) // Show applied filters in response
+        ]);
+    }
+
+    /**
+     * Validate date format (YYYY-MM-DD)
+     */
+    private function isValidDate($date)
+    {
+        if (!$date) return false;
+        
+        $d = \DateTime::createFromFormat('Y-m-d', $date);
+        return $d && $d->format('Y-m-d') === $date;
     }
 }
