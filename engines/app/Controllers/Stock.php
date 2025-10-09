@@ -87,7 +87,7 @@ class Stock extends BaseController
         return api_respond_created($created, 'Stock transaction recorded successfully');
     }
 
-    // GET /api/stocks?type=in|out&product_id=123&page=1&limit=20&search=product_name&date_start=2025-01-01&date_end=2025-12-31
+        // GET /api/stocks?type=in|out&page=1&limit=20&product_id=1&product_type=product&search=product_name&date_start=2025-01-01&date_end=2025-12-31
     public function getByShop()
     {
         $payload = $this->decodeToken();
@@ -108,6 +108,7 @@ class Stock extends BaseController
         $filters = [
             'type' => $this->request->getGet('type'), // Filter by transaction type (in/out)
             'product_id' => $this->request->getGet('product_id'), // Filter by specific product ID
+            'product_type' => $this->request->getGet('product_type'), // Filter by product type (product/composition)
             'search' => $this->request->getGet('search'), // Search by product name
             'date_start' => $this->request->getGet('date_start'), // Filter by date range start
             'date_end' => $this->request->getGet('date_end'), // Filter by date range end
@@ -130,6 +131,11 @@ class Stock extends BaseController
         // Validate product_id filter
         if ($filters['product_id'] && !$this->isValidId($filters['product_id'])) {
             return api_respond_validation_error(['product_id' => 'Product ID must be a valid integer']);
+        }
+        
+        // Validate product_type filter
+        if ($filters['product_type'] && !in_array($filters['product_type'], ['product', 'composition'])) {
+            return api_respond_validation_error(['product_type' => 'Product type must be either "product" or "composition"']);
         }
         
         // Validate date format
