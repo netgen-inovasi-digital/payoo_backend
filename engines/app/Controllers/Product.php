@@ -33,28 +33,8 @@ class Product extends BaseController
             return api_respond_success([], 'No shop assigned');
         }
         
-        $products = $this->model->getProductsByShop($shopId, 'product');
-        
-        // Ambil total stok per product (in - out) dalam 1 query
-        $db = Database::connect();
-        $stockRows = [];
-        if (!empty($products)) {
-            $productIds = array_column($products, 'id');
-            $stockRows = $db->table('stocks')
-                ->select('product_id, SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-                ->whereIn('product_id', $productIds)
-                ->groupBy('product_id')
-                ->get()
-                ->getResultArray();
-        }
-        $stockMap = [];
-        foreach ($stockRows as $r) {
-            $stockMap[$r['product_id']] = (int) $r['stock_total'];
-        }
-        foreach ($products as &$row) {
-            $row['stock'] = $stockMap[$row['id']] ?? 0;
-        }
-        unset($row);
+        // Use optimized method from ProductModel
+        $products = $this->model->getProductsWithStockByShop($shopId, 'product');
         
         return api_respond_success($products, 'Product list');
     }
@@ -70,22 +50,13 @@ class Product extends BaseController
             return api_respond_unauthorized('Invalid token');
         }
         $shopId = $payload->shop_id ?? null;
-        $product = $this->model->where('shop_id', $shopId)->find($id);
+        
+        // Use optimized method from ProductModel
+        $product = $this->model->getProductWithDetailsById($id, $shopId);
+        
         if (!$product) {
             return api_respond_not_found('Product not found');
         }
-        
-        // Tambahkan compositions untuk product ini
-        $product['compositions'] = $this->productCompositionModel->getCompositionsByProduct($id);
-        
-        // Hitung stok untuk product ini
-        $db = Database::connect();
-        $stock = $db->table('stocks')
-            ->select('SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-            ->where('product_id', $id)
-            ->get()
-            ->getRowArray();
-        $product['stock'] = isset($stock['stock_total']) ? (int) $stock['stock_total'] : 0;
         
         return api_respond_success($product, 'Product detail');
     }

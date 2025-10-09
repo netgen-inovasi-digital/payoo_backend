@@ -87,6 +87,70 @@ class CompositionModel extends Model
     }
 
     /**
+     * Get compositions with stock information by shop (optimized)
+     */
+    public function getCompositionsWithStockByShop($shopId)
+    {
+        $db = \Config\Database::connect();
+        
+        $compositions = $db->query("
+            SELECT 
+                p.*,
+                COALESCE(stock_summary.stock_total, 0) AS stock
+            FROM products p
+            LEFT JOIN (
+                SELECT 
+                    product_id,
+                    SUM(CASE WHEN type = 'in' THEN quantity ELSE -quantity END) AS stock_total
+                FROM stocks
+                GROUP BY product_id
+            ) stock_summary ON stock_summary.product_id = p.id
+            WHERE p.shop_id = ? AND p.type = 'composition'
+            ORDER BY p.id DESC
+        ", [$shopId])->getResultArray();
+
+        // Convert stock to integer for consistency
+        foreach ($compositions as &$composition) {
+            $composition['stock'] = (int) $composition['stock'];
+        }
+        unset($composition);
+
+        return $compositions;
+    }
+
+    /**
+     * Get single composition with stock by ID and shop (optimized)
+     */
+    public function getCompositionWithStockById($compositionId, $shopId)
+    {
+        $db = \Config\Database::connect();
+        
+        $result = $db->query("
+            SELECT 
+                p.*,
+                COALESCE(stock_summary.stock_total, 0) AS stock
+            FROM products p
+            LEFT JOIN (
+                SELECT 
+                    product_id,
+                    SUM(CASE WHEN type = 'in' THEN quantity ELSE -quantity END) AS stock_total
+                FROM stocks
+                GROUP BY product_id
+            ) stock_summary ON stock_summary.product_id = p.id
+            WHERE p.shop_id = ? AND p.id = ? AND p.type = 'composition'
+        ", [$shopId, $compositionId])->getRowArray();
+        
+        if (!$result) {
+            return null;
+        }
+        
+        // Convert stock to integer
+        $result['stock'] = (int) $result['stock'];
+        
+        return $result;
+    }
+
+    /**
      * Override find to ensure we only get compositions
      */
     public function find($id = null)
