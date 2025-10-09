@@ -145,6 +145,11 @@ class StockModel extends Model
             $builder->where('stocks.product_id', (int) $filters['product_id']);
         }
         
+        // Filter by product type (product/composition)
+        if (!empty($filters['product_type'])) {
+            $builder->where('products.type', $filters['product_type']);
+        }
+        
         // Search by product name (partial match, case insensitive)
         if (!empty($filters['search'])) {
             $builder->like('products.name', $filters['search']);
