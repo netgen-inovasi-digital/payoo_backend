@@ -99,8 +99,19 @@ class StockModel extends Model
             $builder->where('stocks.type', $typeFilter);
         }
         
-        return $builder->orderBy('stocks.date', 'DESC')
-                      ->findAll();
+        $results = $builder->orderBy('stocks.date', 'DESC')
+                          ->findAll();
+        
+        // Convert fields to proper types for consistency
+        foreach ($results as &$row) {
+            $row['id'] = (int) $row['id'];
+            $row['product_id'] = (int) $row['product_id'];
+            $row['quantity'] = (int) $row['quantity'];
+            $row['buy_price'] = $row['buy_price'] ? (int) $row['buy_price'] : null;
+        }
+        unset($row);
+        
+        return $results;
     }
 
     /**
@@ -170,8 +181,15 @@ class StockModel extends Model
         // Extract total count from first row (if exists)
         $total = !empty($results) ? (int) $results[0]['total_count'] : 0;
         
-        // Remove total_count from each row to clean up the data
+        // Convert fields to proper types and remove total_count from each row
         foreach ($results as &$row) {
+            // Convert fields to proper integer types
+            $row['id'] = (int) $row['id'];
+            $row['product_id'] = (int) $row['product_id'];
+            $row['quantity'] = (int) $row['quantity'];
+            $row['buy_price'] = $row['buy_price'] ? (int) $row['buy_price'] : null;
+            
+            // Remove the window function count field
             unset($row['total_count']);
         }
         unset($row);
@@ -240,8 +258,13 @@ class StockModel extends Model
             ORDER BY p.id DESC
         ", [$shopId])->getResultArray();
 
-        // Convert stock to integer for consistency
+        // Convert fields to proper types for consistency
         foreach ($products as &$product) {
+            $product['id'] = (int) $product['id'];
+            $product['shop_id'] = (int) $product['shop_id'];
+            $product['category_id'] = $product['category_id'] ? (int) $product['category_id'] : null;
+            $product['cost_price'] = (int) $product['cost_price'];
+            $product['selling_price'] = (int) $product['selling_price'];
             $product['stock'] = (int) $product['stock'];
         }
         unset($product);
