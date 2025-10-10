@@ -107,8 +107,13 @@ class ProductModel extends Model
             ORDER BY p.id DESC
         ", [$shopId, $type])->getResultArray();
 
-        // Convert stock to integer for consistency
+        // Convert fields to proper types for consistency
         foreach ($products as &$product) {
+            $product['id'] = (int) $product['id'];
+            $product['shop_id'] = (int) $product['shop_id'];
+            $product['category_id'] = $product['category_id'] ? (int) $product['category_id'] : null;
+            $product['cost_price'] = (int) (float) $product['cost_price']; // Convert string decimal to int
+            $product['selling_price'] = (int) (float) $product['selling_price']; // Convert string decimal to int
             $product['stock'] = (int) $product['stock'];
         }
         unset($product);
@@ -123,18 +128,11 @@ class ProductModel extends Model
     {
         $db = Database::connect();
         
-        $result = $db->query("
+        // First get the product with stock
+        $product = $db->query("
             SELECT 
                 p.*,
-                COALESCE(stock_summary.stock_total, 0) AS stock,
-                GROUP_CONCAT(
-                    CASE 
-                        WHEN pc.composition_id IS NOT NULL 
-                        THEN CONCAT('{\"id\":', pc.composition_id, ',\"name\":\"', REPLACE(c.name, '\"', '\\\\\"'), '\",\"quantity\":', pc.quantity, '}')
-                        ELSE NULL 
-                    END
-                    SEPARATOR ','
-                ) AS compositions_json
+                COALESCE(stock_summary.stock_total, 0) AS stock
             FROM products p
             LEFT JOIN (
                 SELECT 
@@ -143,41 +141,53 @@ class ProductModel extends Model
                 FROM stocks
                 GROUP BY product_id
             ) stock_summary ON stock_summary.product_id = p.id
-            LEFT JOIN product_compositions pc ON pc.product_id = p.id
-            LEFT JOIN products c ON c.id = pc.composition_id AND c.type = 'composition'
             WHERE p.shop_id = ? AND p.id = ?
-            GROUP BY p.id
         ", [$shopId, $productId])->getRowArray();
         
-        if (!$result) {
+        if (!$product) {
             return null;
         }
         
-        // Convert stock to integer
-        $result['stock'] = (int) $result['stock'];
+        // Convert fields to proper types for consistency  
+        $product['id'] = (int) $product['id'];
+        $product['shop_id'] = (int) $product['shop_id'];
+        $product['category_id'] = $product['category_id'] ? (int) $product['category_id'] : null;
+        $product['cost_price'] = (int) $product['cost_price']; // Convert string decimal to int
+        $product['selling_price'] = (int) $product['selling_price']; // Convert string decimal to int
+        $product['stock'] = (int) $product['stock'];
         
-        // Parse compositions JSON
-        $compositions = [];
-        if (!empty($result['compositions_json'])) {
-            $compositionItems = explode(',', $result['compositions_json']);
-            foreach ($compositionItems as $item) {
-                if (!empty($item)) {
-                    $comp = json_decode($item, true);
-                    if ($comp) {
-                        $compositions[] = [
-                            'composition_id' => (int) $comp['id'],
-                            'name' => $comp['name'],
-                            'quantity' => (int) $comp['quantity']
-                        ];
-                    }
-                }
-            }
+        // Then get compositions in separate optimized query
+        $compositions = $db->query("
+            SELECT 
+                pc.id,
+                pc.product_id,
+                pc.composition_id,
+                pc.quantity,
+                pc.created_at,
+                pc.updated_at,
+                c.name as composition_name,
+                c.cost_price,
+                c.selling_price,
+                c.unit
+            FROM product_compositions pc
+            JOIN products c ON c.id = pc.composition_id AND c.type = 'composition'
+            WHERE pc.product_id = ?
+            ORDER BY pc.id
+        ", [$productId])->getResultArray();
+        
+        // Convert composition fields to proper types
+        foreach ($compositions as &$comp) {
+            $comp['id'] = (int) $comp['id'];
+            $comp['product_id'] = (int) $comp['product_id'];
+            $comp['composition_id'] = (int) $comp['composition_id'];
+            $comp['quantity'] = (int) $comp['quantity'];
+            $comp['cost_price'] = (int) $comp['cost_price'];
+            $comp['selling_price'] = (int) $comp['selling_price'];
         }
+        unset($comp);
         
-        // Remove the temporary JSON field and add parsed compositions
-        unset($result['compositions_json']);
-        $result['compositions'] = $compositions;
+        $product['compositions'] = $compositions;
         
-        return $result;
+        return $product;
     }
 }

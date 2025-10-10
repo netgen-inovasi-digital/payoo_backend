@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use Config\Database;
 
 class CompositionModel extends Model
 {
@@ -91,7 +92,7 @@ class CompositionModel extends Model
      */
     public function getCompositionsWithStockByShop($shopId)
     {
-        $db = \Config\Database::connect();
+        $db = Database::connect();
         
         $compositions = $db->query("
             SELECT 
@@ -109,8 +110,13 @@ class CompositionModel extends Model
             ORDER BY p.id DESC
         ", [$shopId])->getResultArray();
 
-        // Convert stock to integer for consistency
+        // Convert fields to proper types for consistency
         foreach ($compositions as &$composition) {
+            $composition['id'] = (int) $composition['id'];
+            $composition['shop_id'] = (int) $composition['shop_id'];
+            $composition['category_id'] = $composition['category_id'] ? (int) $composition['category_id'] : null;
+            $composition['cost_price'] = (int) $composition['cost_price'];
+            $composition['selling_price'] = (int) $composition['selling_price'];
             $composition['stock'] = (int) $composition['stock'];
         }
         unset($composition);
@@ -123,7 +129,7 @@ class CompositionModel extends Model
      */
     public function getCompositionWithStockById($compositionId, $shopId)
     {
-        $db = \Config\Database::connect();
+        $db = Database::connect();
         
         $result = $db->query("
             SELECT 
@@ -144,7 +150,12 @@ class CompositionModel extends Model
             return null;
         }
         
-        // Convert stock to integer
+        // Convert fields to proper types for consistency  
+        $result['id'] = (int) $result['id'];
+        $result['shop_id'] = (int) $result['shop_id'];
+        $result['category_id'] = $result['category_id'] ? (int) $result['category_id'] : null;
+        $result['cost_price'] = (int) $result['cost_price']; 
+        $result['selling_price'] = (int) $result['selling_price'];
         $result['stock'] = (int) $result['stock'];
         
         return $result;
