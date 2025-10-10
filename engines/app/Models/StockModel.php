@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use Config\Database;
 
 class StockModel extends Model
 {
@@ -104,65 +105,81 @@ class StockModel extends Model
 
     /**
      * Get paginated stock movements by shop with filters
+     * Optimized: Single query with window function to get count and data together
      */
     public function getStockMovementsByShopPaginated($shopId, $filters = [], $limit = 20, $offset = 0)
     {
-        // Build base query for data
-        $builder = $this->select('stocks.*, products.name as product_name, products.type as product_type')
-                       ->join('products', 'products.id = stocks.product_id')
-                       ->where('products.shop_id', $shopId);
+        $db = Database::connect();
         
-        // Apply filters
-        $this->applyStockFilters($builder, $filters);
+        // Build WHERE conditions dynamically
+        $whereConditions = ['p.shop_id = ?'];
+        $params = [$shopId];
         
-        // Get total count for pagination
-        $totalBuilder = clone $builder;
-        $total = $totalBuilder->countAllResults(false);
-        
-        // Get paginated data
-        $data = $builder->orderBy('stocks.date', 'DESC')
-                       ->limit($limit, $offset)
-                       ->findAll();
-        
-        return [
-            'data' => $data,
-            'total' => $total
-        ];
-    }
-
-    /**
-     * Apply filters to stock movements query
-     */
-    private function applyStockFilters($builder, $filters)
-    {
-        // Filter by transaction type (in/out)
+        // Apply filters dynamically
         if (!empty($filters['type'])) {
-            $builder->where('stocks.type', $filters['type']);
+            $whereConditions[] = 's.type = ?';
+            $params[] = $filters['type'];
         }
         
-        // Filter by specific product ID
         if (!empty($filters['product_id'])) {
-            $builder->where('stocks.product_id', (int) $filters['product_id']);
+            $whereConditions[] = 's.product_id = ?';
+            $params[] = (int) $filters['product_id'];
         }
         
-        // Filter by product type (product/composition)
         if (!empty($filters['product_type'])) {
-            $builder->where('products.type', $filters['product_type']);
+            $whereConditions[] = 'p.type = ?';
+            $params[] = $filters['product_type'];
         }
         
-        // Search by product name (partial match, case insensitive)
         if (!empty($filters['search'])) {
-            $builder->like('products.name', $filters['search']);
+            $whereConditions[] = 'p.name LIKE ?';
+            $params[] = '%' . $filters['search'] . '%';
         }
         
-        // Date range filter - filter stock transactions within date range
         if (!empty($filters['date_start'])) {
-            $builder->where('DATE(stocks.date) >=', $filters['date_start']);
+            $whereConditions[] = 'DATE(s.date) >= ?';
+            $params[] = $filters['date_start'];
         }
         
         if (!empty($filters['date_end'])) {
-            $builder->where('DATE(stocks.date) <=', $filters['date_end']);
+            $whereConditions[] = 'DATE(s.date) <= ?';
+            $params[] = $filters['date_end'];
         }
+        
+        $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
+        
+        // Single optimized query with window function to get both count and data
+        $query = "
+            SELECT 
+                s.*,
+                p.name as product_name,
+                p.type as product_type,
+                COUNT(*) OVER() as total_count
+            FROM stocks s
+            INNER JOIN products p ON p.id = s.product_id
+            {$whereClause}
+            ORDER BY s.date DESC
+            LIMIT ? OFFSET ?
+        ";
+        
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        $results = $db->query($query, $params)->getResultArray();
+        
+        // Extract total count from first row (if exists)
+        $total = !empty($results) ? (int) $results[0]['total_count'] : 0;
+        
+        // Remove total_count from each row to clean up the data
+        foreach ($results as &$row) {
+            unset($row['total_count']);
+        }
+        unset($row);
+        
+        return [
+            'data' => $results,
+            'total' => $total
+        ];
     }
 
     /**
@@ -200,40 +217,32 @@ class StockModel extends Model
 
     /**
      * Get all products with stock information by shop
+     * Optimized: Single query with LEFT JOIN to avoid N+1 problem
      */
     public function getProductsWithStockByShop($shopId)
     {
-        $db = \Config\Database::connect();
+        $db = Database::connect();
         
-        // Get all products for the shop
-        $products = $db->table('products')
-                      ->where('shop_id', $shopId)
-                      ->orderBy('id', 'DESC')
-                      ->get()
-                      ->getResultArray();
+        // Single optimized query with LEFT JOIN to get products and stock in one go
+        $products = $db->query("
+            SELECT 
+                p.*,
+                COALESCE(stock_summary.stock_total, 0) AS stock
+            FROM products p
+            LEFT JOIN (
+                SELECT 
+                    product_id,
+                    SUM(CASE WHEN type = 'in' THEN quantity ELSE -quantity END) AS stock_total
+                FROM stocks
+                GROUP BY product_id
+            ) stock_summary ON stock_summary.product_id = p.id
+            WHERE p.shop_id = ?
+            ORDER BY p.id DESC
+        ", [$shopId])->getResultArray();
 
-        if (empty($products)) {
-            return [];
-        }
-
-        // Get stock totals for all products in one query
-        $productIds = array_column($products, 'id');
-        $stockRows = $db->table('stocks')
-                       ->select('product_id, SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-                       ->whereIn('product_id', $productIds)
-                       ->groupBy('product_id')
-                       ->get()
-                       ->getResultArray();
-
-        // Create stock mapping
-        $stockMap = [];
-        foreach ($stockRows as $r) {
-            $stockMap[$r['product_id']] = (int) $r['stock_total'];
-        }
-
-        // Add stock information to each product
+        // Convert stock to integer for consistency
         foreach ($products as &$product) {
-            $product['stock'] = $stockMap[$product['id']] ?? 0;
+            $product['stock'] = (int) $product['stock'];
         }
         unset($product);
 

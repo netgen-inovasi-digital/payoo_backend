@@ -30,28 +30,9 @@ class Composition extends BaseController
             return api_respond_success([], 'No shop assigned');
         }
 
-        $items = $this->model->getCompositionsByShop($shopId);
-
-        // Ambil total stok per composition (in - out) dalam 1 query
-        $db = Database::connect();
-        $stockRows = [];
-        if (!empty($items)) {
-            $compositionIds = array_column($items, 'id');
-            $stockRows = $db->table('stocks')
-                ->select('product_id, SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-                ->whereIn('product_id', $compositionIds)
-                ->groupBy('product_id')
-                ->get()
-                ->getResultArray();
-        }
-        $stockMap = [];
-        foreach ($stockRows as $r) {
-            $stockMap[$r['product_id']] = (int) $r['stock_total'];
-        }
-        foreach ($items as &$row) {
-            $row['stock'] = $stockMap[$row['id']] ?? 0;
-        }
-        unset($row);
+        // Use optimized method from CompositionModel
+        $items = $this->model->getCompositionsWithStockByShop($shopId);
+        
         return api_respond_success($items, 'Composition list');
     }
 
@@ -66,18 +47,14 @@ class Composition extends BaseController
             return api_respond_unauthorized('Invalid token');
         }
         $shopId = $payload->shop_id ?? null;
-        $item = $this->model->where('shop_id', $shopId)->find($id);
+        
+        // Use optimized method from CompositionModel
+        $item = $this->model->getCompositionWithStockById($id, $shopId);
+        
         if (!$item) {
             return api_respond_not_found('Composition not found');
         }
-        // Hitung stok untuk composition ini
-        $db = Database::connect();
-        $stock = $db->table('stocks')
-            ->select('SUM(CASE WHEN type = "in" THEN quantity ELSE -quantity END) AS stock_total')
-            ->where('product_id', $id)
-            ->get()
-            ->getRowArray();
-        $item['stock'] = isset($stock['stock_total']) ? (int) $stock['stock_total'] : 0;
+        
         return api_respond_success($item, 'Composition detail');
     }
 

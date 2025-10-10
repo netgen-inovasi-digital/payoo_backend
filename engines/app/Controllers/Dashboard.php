@@ -32,38 +32,26 @@ class Dashboard extends BaseController
 
         $db = Database::connect();
 
-        // Get product quantity (type = 'product')
-        $productQuery = $db->table('products')
-            ->where('shop_id', $shopId)
-            ->where('type', 'product')
-            ->countAllResults();
-
-        // Get category quantity
-        $categoryQuery = $db->table('categories')
-            ->where('shop_id', $shopId)
-            ->countAllResults();
-
-        // Get composition quantity (type = 'composition')
-        $compositionQuery = $db->table('products')
-            ->where('shop_id', $shopId)
-            ->where('type', 'composition')
-            ->countAllResults();
-
-        // Get transaction count and revenue for today
-        $transactionQuery = $db->table('orders')
-            ->select('COUNT(*) as transaction_count, COALESCE(SUM(total), 0) as revenue')
-            ->where('shop_id', $shopId)
-            ->where('created_at >=', $start->format('Y-m-d H:i:s'))
-            ->where('created_at <=', $end->format('Y-m-d H:i:s'))
-            ->get()
-            ->getRowArray();
+        // Combine all queries into a single query to reduce connections
+        $dashboardData = $db->query("
+            SELECT 
+                (SELECT COUNT(*) FROM products WHERE shop_id = ? AND type = 'product') as product_quantity,
+                (SELECT COUNT(*) FROM categories WHERE shop_id = ?) as category_quantity,
+                (SELECT COUNT(*) FROM products WHERE shop_id = ? AND type = 'composition') as composition_quantity,
+                (SELECT COUNT(*) FROM orders WHERE shop_id = ? AND created_at >= ? AND created_at <= ?) as transaction_count,
+                (SELECT COALESCE(SUM(total), 0) FROM orders WHERE shop_id = ? AND created_at >= ? AND created_at <= ?) as revenue
+        ", [
+            $shopId, $shopId, $shopId, $shopId, 
+            $start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s'),
+            $shopId, $start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')
+        ])->getRowArray();
 
         $data = [
-            'product_quantity' => (int)$productQuery,
-            'category_quantity' => (int)$categoryQuery,
-            'composition_quantity' => (int)$compositionQuery,
-            'transaction_count' => (int)($transactionQuery['transaction_count'] ?? 0),
-            'revenue' => (int)($transactionQuery['revenue'] ?? 0),
+            'product_quantity' => (int)($dashboardData['product_quantity'] ?? 0),
+            'category_quantity' => (int)($dashboardData['category_quantity'] ?? 0),
+            'composition_quantity' => (int)($dashboardData['composition_quantity'] ?? 0),
+            'transaction_count' => (int)($dashboardData['transaction_count'] ?? 0),
+            'revenue' => (int)($dashboardData['revenue'] ?? 0),
             'date' => $now->format('d-m-Y'),
         ];
 
@@ -88,11 +76,10 @@ class Dashboard extends BaseController
         $lastMonth = $currentMonth == 1 ? 12 : $currentMonth - 1;
         $lastMonthYear = $currentMonth == 1 ? $currentYear - 1 : $currentYear;
 
-        // Get current month data
-        $currentMonthData = $this->getMonthlyMetrics($db, $shopId, $currentYear, $currentMonth);
-        
-        // Get last month data for comparison
-        $lastMonthData = $this->getMonthlyMetrics($db, $shopId, $lastMonthYear, $lastMonth);
+        // Get both current and last month data in a single optimized query
+        $monthlyMetrics = $this->getComparisonMetrics($db, $shopId, $currentYear, $currentMonth, $lastMonthYear, $lastMonth);
+        $currentMonthData = $monthlyMetrics['current'];
+        $lastMonthData = $monthlyMetrics['last'];
 
         // Calculate growth percentages
         $transactionsGrowth = $this->calculateGrowth($currentMonthData['transactions'], $lastMonthData['transactions']);
@@ -153,37 +140,71 @@ class Dashboard extends BaseController
         return api_respond_success($data, 'Dashboard data fetched');
     }
 
-    private function getMonthlyMetrics($db, $shopId, $year, $month)
+    private function getComparisonMetrics($db, $shopId, $currentYear, $currentMonth, $lastYear, $lastMonth)
     {
-        // Get transactions count and revenue
-        $orderMetrics = $db->table('orders')
-            ->select('COUNT(*) as transactions, COALESCE(SUM(total), 0) as revenue')
-            ->where('shop_id', $shopId)
-            ->where('YEAR(created_at)', $year)
-            ->where('MONTH(created_at)', $month)
-            ->get()
-            ->getRowArray();
+        // Single optimized query to get both current and last month metrics
+        $metrics = $db->query("
+            SELECT 
+                SUM(CASE WHEN YEAR(o.created_at) = ? AND MONTH(o.created_at) = ? THEN 1 ELSE 0 END) as current_transactions,
+                SUM(CASE WHEN YEAR(o.created_at) = ? AND MONTH(o.created_at) = ? THEN o.total ELSE 0 END) as current_revenue,
+                SUM(CASE WHEN YEAR(o.created_at) = ? AND MONTH(o.created_at) = ? THEN 1 ELSE 0 END) as last_transactions,
+                SUM(CASE WHEN YEAR(o.created_at) = ? AND MONTH(o.created_at) = ? THEN o.total ELSE 0 END) as last_revenue,
+                COALESCE(items.current_items_sold, 0) as current_items_sold,
+                COALESCE(items.last_items_sold, 0) as last_items_sold
+            FROM orders o
+            LEFT JOIN (
+                SELECT 
+                    SUM(CASE WHEN YEAR(ord.created_at) = ? AND MONTH(ord.created_at) = ? THEN oi.quantity ELSE 0 END) as current_items_sold,
+                    SUM(CASE WHEN YEAR(ord.created_at) = ? AND MONTH(ord.created_at) = ? THEN oi.quantity ELSE 0 END) as last_items_sold
+                FROM order_items oi
+                JOIN orders ord ON ord.id = oi.order_id
+                WHERE ord.shop_id = ?
+                    AND ((YEAR(ord.created_at) = ? AND MONTH(ord.created_at) = ?) 
+                         OR (YEAR(ord.created_at) = ? AND MONTH(ord.created_at) = ?))
+            ) items ON 1=1
+            WHERE o.shop_id = ?
+                AND ((YEAR(o.created_at) = ? AND MONTH(o.created_at) = ?) 
+                     OR (YEAR(o.created_at) = ? AND MONTH(o.created_at) = ?))
+        ", [
+            $currentYear, $currentMonth, // current transactions
+            $currentYear, $currentMonth, // current revenue  
+            $lastYear, $lastMonth,       // last transactions
+            $lastYear, $lastMonth,       // last revenue
+            $currentYear, $currentMonth, // current items sold
+            $lastYear, $lastMonth,       // last items sold
+            $shopId,                     // items subquery shop_id
+            $currentYear, $currentMonth, // items subquery current
+            $lastYear, $lastMonth,       // items subquery last
+            $shopId,                     // main query shop_id
+            $currentYear, $currentMonth, // main query current
+            $lastYear, $lastMonth        // main query last
+        ])->getRowArray();
 
-        // Get items sold
-        $itemsSold = $db->table('order_items oi')
-            ->select('COALESCE(SUM(oi.quantity), 0) as items_sold')
-            ->join('orders o', 'o.id = oi.order_id')
-            ->where('o.shop_id', $shopId)
-            ->where('YEAR(o.created_at)', $year)
-            ->where('MONTH(o.created_at)', $month)
-            ->get()
-            ->getRowArray();
+        // Process current month data
+        $currentTransactions = (int)($metrics['current_transactions'] ?? 0);
+        $currentRevenue = (float)($metrics['current_revenue'] ?? 0);
+        $currentItemsSold = (int)($metrics['current_items_sold'] ?? 0);
+        $currentAov = $currentTransactions > 0 ? $currentRevenue / $currentTransactions : 0;
 
-        $transactions = (int)$orderMetrics['transactions'];
-        $revenue = (float)$orderMetrics['revenue'];
-        $itemsSoldCount = (int)$itemsSold['items_sold'];
-        $aov = $transactions > 0 ? $revenue / $transactions : 0;
+        // Process last month data
+        $lastTransactions = (int)($metrics['last_transactions'] ?? 0);
+        $lastRevenue = (float)($metrics['last_revenue'] ?? 0);
+        $lastItemsSold = (int)($metrics['last_items_sold'] ?? 0);
+        $lastAov = $lastTransactions > 0 ? $lastRevenue / $lastTransactions : 0;
 
         return [
-            'transactions' => $transactions,
-            'revenue' => $revenue,
-            'items_sold' => $itemsSoldCount,
-            'aov' => round($aov, 2)
+            'current' => [
+                'transactions' => $currentTransactions,
+                'revenue' => $currentRevenue,
+                'items_sold' => $currentItemsSold,
+                'aov' => round($currentAov, 2)
+            ],
+            'last' => [
+                'transactions' => $lastTransactions,
+                'revenue' => $lastRevenue,
+                'items_sold' => $lastItemsSold,
+                'aov' => round($lastAov, 2)
+            ]
         ];
     }
 
@@ -206,59 +227,79 @@ class Dashboard extends BaseController
     private function getMonthlySales($db, $shopId, $year)
     {
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Des'];
+        
+        // Get all months data in a single query
+        $results = $db->query("
+            SELECT 
+                MONTH(created_at) as month_num,
+                COUNT(*) as transactions,
+                COALESCE(SUM(total), 0) as revenue
+            FROM orders 
+            WHERE shop_id = ? AND YEAR(created_at) = ?
+            GROUP BY MONTH(created_at)
+            ORDER BY month_num
+        ", [$shopId, $year])->getResultArray();
+
+        // Create array with all months (initialize with 0 values)
         $sales = [];
-
         for ($month = 1; $month <= 12; $month++) {
-            $result = $db->table('orders')
-                ->select('COUNT(*) as transactions, COALESCE(SUM(total), 0) as revenue')
-                ->where('shop_id', $shopId)
-                ->where('YEAR(created_at)', $year)
-                ->where('MONTH(created_at)', $month)
-                ->get()
-                ->getRowArray();
-
-            $sales[] = [
+            $sales[$month] = [
                 'month' => $months[$month - 1],
+                'transactions' => 0,
+                'revenue' => 0.0
+            ];
+        }
+
+        // Fill with actual data
+        foreach ($results as $result) {
+            $monthNum = (int)$result['month_num'];
+            $sales[$monthNum] = [
+                'month' => $months[$monthNum - 1],
                 'transactions' => (int)$result['transactions'],
                 'revenue' => (float)$result['revenue']
             ];
         }
 
-        return $sales;
+        return array_values($sales);
     }
 
     private function getStatistics($db, $shopId, $year)
     {
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Des'];
+        
+        // Get all statistics in a single query
+        $results = $db->query("
+            SELECT 
+                MONTH(o.created_at) as month_num,
+                COUNT(o.id) as orders,
+                COALESCE(SUM(oi.quantity), 0) as items_sold
+            FROM orders o
+            LEFT JOIN order_items oi ON oi.order_id = o.id
+            WHERE o.shop_id = ? AND YEAR(o.created_at) = ?
+            GROUP BY MONTH(o.created_at)
+            ORDER BY month_num
+        ", [$shopId, $year])->getResultArray();
+
+        // Create array with all months (initialize with 0 values)
         $statistics = [];
-
         for ($month = 1; $month <= 12; $month++) {
-            // Get orders count
-            $orderCount = $db->table('orders')
-                ->selectCount('id', 'orders')
-                ->where('shop_id', $shopId)
-                ->where('YEAR(created_at)', $year)
-                ->where('MONTH(created_at)', $month)
-                ->get()
-                ->getRowArray();
-
-            // Get items sold
-            $itemsSold = $db->table('order_items oi')
-                ->select('COALESCE(SUM(oi.quantity), 0) as items_sold')
-                ->join('orders o', 'o.id = oi.order_id')
-                ->where('o.shop_id', $shopId)
-                ->where('YEAR(o.created_at)', $year)
-                ->where('MONTH(o.created_at)', $month)
-                ->get()
-                ->getRowArray();
-
-            $statistics[] = [
+            $statistics[$month] = [
                 'month' => $months[$month - 1],
-                'orders' => (int)$orderCount['orders'],
-                'items_sold' => (int)$itemsSold['items_sold']
+                'orders' => 0,
+                'items_sold' => 0
             ];
         }
 
-        return $statistics;
+        // Fill with actual data
+        foreach ($results as $result) {
+            $monthNum = (int)$result['month_num'];
+            $statistics[$monthNum] = [
+                'month' => $months[$monthNum - 1],
+                'orders' => (int)$result['orders'],
+                'items_sold' => (int)$result['items_sold']
+            ];
+        }
+
+        return array_values($statistics);
     }
 }

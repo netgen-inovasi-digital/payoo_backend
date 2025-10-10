@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use Config\Database;
 
 class ProductModel extends Model
 {
@@ -81,5 +82,102 @@ class ProductModel extends Model
                    ->where('type', $type)
                    ->orderBy('id', 'DESC')
                    ->findAll();
+    }
+
+    /**
+     * Get products with stock information by shop (optimized)
+     */
+    public function getProductsWithStockByShop($shopId, $type = 'product')
+    {
+        $db = Database::connect();
+        
+        $products = $db->query("
+            SELECT 
+                p.*,
+                COALESCE(stock_summary.stock_total, 0) AS stock
+            FROM products p
+            LEFT JOIN (
+                SELECT 
+                    product_id,
+                    SUM(CASE WHEN type = 'in' THEN quantity ELSE -quantity END) AS stock_total
+                FROM stocks
+                GROUP BY product_id
+            ) stock_summary ON stock_summary.product_id = p.id
+            WHERE p.shop_id = ? AND p.type = ?
+            ORDER BY p.id DESC
+        ", [$shopId, $type])->getResultArray();
+
+        // Convert stock to integer for consistency
+        foreach ($products as &$product) {
+            $product['stock'] = (int) $product['stock'];
+        }
+        unset($product);
+
+        return $products;
+    }
+
+    /**
+     * Get single product with stock and compositions (optimized)
+     */
+    public function getProductWithDetailsById($productId, $shopId)
+    {
+        $db = Database::connect();
+        
+        $result = $db->query("
+            SELECT 
+                p.*,
+                COALESCE(stock_summary.stock_total, 0) AS stock,
+                GROUP_CONCAT(
+                    CASE 
+                        WHEN pc.composition_id IS NOT NULL 
+                        THEN CONCAT('{\"id\":', pc.composition_id, ',\"name\":\"', REPLACE(c.name, '\"', '\\\\\"'), '\",\"quantity\":', pc.quantity, '}')
+                        ELSE NULL 
+                    END
+                    SEPARATOR ','
+                ) AS compositions_json
+            FROM products p
+            LEFT JOIN (
+                SELECT 
+                    product_id,
+                    SUM(CASE WHEN type = 'in' THEN quantity ELSE -quantity END) AS stock_total
+                FROM stocks
+                GROUP BY product_id
+            ) stock_summary ON stock_summary.product_id = p.id
+            LEFT JOIN product_compositions pc ON pc.product_id = p.id
+            LEFT JOIN products c ON c.id = pc.composition_id AND c.type = 'composition'
+            WHERE p.shop_id = ? AND p.id = ?
+            GROUP BY p.id
+        ", [$shopId, $productId])->getRowArray();
+        
+        if (!$result) {
+            return null;
+        }
+        
+        // Convert stock to integer
+        $result['stock'] = (int) $result['stock'];
+        
+        // Parse compositions JSON
+        $compositions = [];
+        if (!empty($result['compositions_json'])) {
+            $compositionItems = explode(',', $result['compositions_json']);
+            foreach ($compositionItems as $item) {
+                if (!empty($item)) {
+                    $comp = json_decode($item, true);
+                    if ($comp) {
+                        $compositions[] = [
+                            'composition_id' => (int) $comp['id'],
+                            'name' => $comp['name'],
+                            'quantity' => (int) $comp['quantity']
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // Remove the temporary JSON field and add parsed compositions
+        unset($result['compositions_json']);
+        $result['compositions'] = $compositions;
+        
+        return $result;
     }
 }
