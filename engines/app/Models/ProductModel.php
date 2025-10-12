@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use Config\Database;
 
 class ProductModel extends Model
 {
@@ -81,5 +82,112 @@ class ProductModel extends Model
                    ->where('type', $type)
                    ->orderBy('id', 'DESC')
                    ->findAll();
+    }
+
+    /**
+     * Get products with stock information by shop (optimized)
+     */
+    public function getProductsWithStockByShop($shopId, $type = 'product')
+    {
+        $db = Database::connect();
+        
+        $products = $db->query("
+            SELECT 
+                p.*,
+                COALESCE(stock_summary.stock_total, 0) AS stock
+            FROM products p
+            LEFT JOIN (
+                SELECT 
+                    product_id,
+                    SUM(CASE WHEN type = 'in' THEN quantity ELSE -quantity END) AS stock_total
+                FROM stocks
+                GROUP BY product_id
+            ) stock_summary ON stock_summary.product_id = p.id
+            WHERE p.shop_id = ? AND p.type = ?
+            ORDER BY p.id DESC
+        ", [$shopId, $type])->getResultArray();
+
+        // Convert fields to proper types for consistency
+        foreach ($products as &$product) {
+            $product['id'] = (int) $product['id'];
+            $product['shop_id'] = (int) $product['shop_id'];
+            $product['category_id'] = $product['category_id'] ? (int) $product['category_id'] : null;
+            $product['cost_price'] = (int) (float) $product['cost_price']; // Convert string decimal to int
+            $product['selling_price'] = (int) (float) $product['selling_price']; // Convert string decimal to int
+            $product['stock'] = (int) $product['stock'];
+        }
+        unset($product);
+
+        return $products;
+    }
+
+    /**
+     * Get single product with stock and compositions (optimized)
+     */
+    public function getProductWithDetailsById($productId, $shopId)
+    {
+        $db = Database::connect();
+        
+        // First get the product with stock
+        $product = $db->query("
+            SELECT 
+                p.*,
+                COALESCE(stock_summary.stock_total, 0) AS stock
+            FROM products p
+            LEFT JOIN (
+                SELECT 
+                    product_id,
+                    SUM(CASE WHEN type = 'in' THEN quantity ELSE -quantity END) AS stock_total
+                FROM stocks
+                GROUP BY product_id
+            ) stock_summary ON stock_summary.product_id = p.id
+            WHERE p.shop_id = ? AND p.id = ?
+        ", [$shopId, $productId])->getRowArray();
+        
+        if (!$product) {
+            return null;
+        }
+        
+        // Convert fields to proper types for consistency  
+        $product['id'] = (int) $product['id'];
+        $product['shop_id'] = (int) $product['shop_id'];
+        $product['category_id'] = $product['category_id'] ? (int) $product['category_id'] : null;
+        $product['cost_price'] = (int) $product['cost_price']; // Convert string decimal to int
+        $product['selling_price'] = (int) $product['selling_price']; // Convert string decimal to int
+        $product['stock'] = (int) $product['stock'];
+        
+        // Then get compositions in separate optimized query
+        $compositions = $db->query("
+            SELECT 
+                pc.id,
+                pc.product_id,
+                pc.composition_id,
+                pc.quantity,
+                pc.created_at,
+                pc.updated_at,
+                c.name as composition_name,
+                c.cost_price,
+                c.selling_price,
+                c.unit
+            FROM product_compositions pc
+            JOIN products c ON c.id = pc.composition_id AND c.type = 'composition'
+            WHERE pc.product_id = ?
+            ORDER BY pc.id
+        ", [$productId])->getResultArray();
+        
+        // Convert composition fields to proper types
+        foreach ($compositions as &$comp) {
+            $comp['id'] = (int) $comp['id'];
+            $comp['product_id'] = (int) $comp['product_id'];
+            $comp['composition_id'] = (int) $comp['composition_id'];
+            $comp['quantity'] = (int) $comp['quantity'];
+            $comp['cost_price'] = (int) $comp['cost_price'];
+            $comp['selling_price'] = (int) $comp['selling_price'];
+        }
+        unset($comp);
+        
+        $product['compositions'] = $compositions;
+        
+        return $product;
     }
 }
