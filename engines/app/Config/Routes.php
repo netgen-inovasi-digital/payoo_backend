@@ -13,8 +13,11 @@ $routes->get('uploads/(:segment)/(:segment)', 'Upload::serve/$1/$2'); // uploads
 
 // Public Auth Routes (tanpa filter)
 $routes->group('api/auth', ['namespace' => 'App\Controllers'], function ($routes) {
-    $routes->post('register', 'Auth::register');   // POST /api/auth/register
-    $routes->post('login', 'Auth::login');         // POST /api/auth/login
+    $routes->post('register', 'Auth::register');                       // POST /api/auth/register
+    $routes->post('login', 'Auth::login');                             // POST /api/auth/login
+    $routes->post('forgot-password', 'Auth::forgotPassword');          // POST /api/auth/forgot-password
+    $routes->post('forgot-password/verify-otp', 'Auth::verifyOtp');    // POST /api/auth/forgot-password/verify-otp
+    $routes->post('reset-password', 'Auth::resetPassword');            // POST /api/auth/reset-password
 });
 
 // Protected Routes (dengan filter bearerAuth)

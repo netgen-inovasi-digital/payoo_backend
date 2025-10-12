@@ -19,6 +19,7 @@ class UserModel extends Model
         'password',
         'photo',
         'role',
+        'otp',
         'created_at',
         'updated_at'
     ];

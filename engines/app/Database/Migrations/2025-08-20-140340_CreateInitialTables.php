@@ -17,6 +17,7 @@ class CreateInitialTables extends Migration
             'password'    => ['type' => 'VARCHAR', 'constraint' => 255],
             'photo'       => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
             'role'        => ['type' => 'ENUM', 'constraint' => ['owner', 'employee', 'user'], 'default' => 'user'],
+            'otp'         => ['type' => 'VARCHAR', 'constraint' => 10, 'null' => true],
             'created_at'  => ['type' => 'DATETIME', 'null' => true],
             'updated_at'  => ['type' => 'DATETIME', 'null' => true],
         ]);
