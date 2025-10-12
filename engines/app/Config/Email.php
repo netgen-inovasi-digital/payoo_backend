@@ -10,23 +10,6 @@ class Email extends BaseConfig
     public string $fromName   = '';
     public string $recipients = '';
 
-    public function __construct()
-    {
-        parent::__construct();
-
-        // Load email configuration from environment variables
-        $this->fromEmail = env('email.fromEmail', 'noreply@netgen.id');
-        $this->fromName = env('email.fromName', 'Payoo App');
-        $this->protocol = env('email.protocol', 'smtp');
-        $this->SMTPHost = env('email.SMTPHost', 'smtp.gmail.com');
-        $this->SMTPUser = env('email.SMTPUser', '');
-        $this->SMTPPass = env('email.SMTPPass', '');
-        $this->SMTPPort = (int) env('email.SMTPPort', 587);
-        $this->SMTPCrypto = env('email.SMTPCrypto', 'tls');
-        $this->mailType = env('email.mailType', 'html');
-        $this->SMTPTimeout = 30;
-    }
-
     /**
      * The "user agent"
      */
