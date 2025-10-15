@@ -86,6 +86,14 @@ class Category extends BaseController
             return api_respond_validation_error(['shop_id' => 'Shop not found']);
         }
         
+        // Check if category name already exists in the same shop
+        $existingCategory = $this->model->where('shop_id', $data['shop_id'])
+                                       ->where('name', $data['name'])
+                                       ->first();
+        if ($existingCategory) {
+            return api_respond_validation_error(['name' => 'Category name already exists in this shop']);
+        }
+        
         if (!$this->model->insert($data)) {
             return api_respond_server_error('Failed to create category');
         }
@@ -121,12 +129,7 @@ class Category extends BaseController
             'name' => trim($json->name ?? '')
         ];
 
-        // Override validation rule agar unique mengabaikan id saat ini dan scope ke shop_id
-        $rules = [
-            'name' => "required|string|max_length[100]|is_unique[categories.name,id,{$id}]",
-            'shop_id' => 'required|integer'
-        ];
-        $this->model->setValidationRules($rules);
+        // Basic validation
         if (!$this->model->validate($data)) {
             return api_respond_validation_error($this->model->errors());
         }
@@ -134,6 +137,15 @@ class Category extends BaseController
         // Validate shop exists
         if (!(new ShopModel())->find($data['shop_id'])) {
             return api_respond_validation_error(['shop_id' => 'Shop not found']);
+        }
+        
+        // Check if category name already exists in the same shop (excluding current category)
+        $existingCategory = $this->model->where('shop_id', $data['shop_id'])
+                                       ->where('name', $data['name'])
+                                       ->where('id !=', $id)
+                                       ->first();
+        if ($existingCategory) {
+            return api_respond_validation_error(['name' => 'Category name already exists in this shop']);
         }
         
         if (!$this->model->update($id, $data)) {

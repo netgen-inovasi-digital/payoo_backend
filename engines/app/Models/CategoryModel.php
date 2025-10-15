@@ -39,7 +39,7 @@ class CategoryModel extends Model
     protected $validationRules      = [
         'shop_id' => 'required|integer',
         // Note: For update you should override rule to ignore current ID (see controller advice)
-        'name' => 'required|string|max_length[100]|is_unique[categories.name]'
+        'name' => 'required|string|max_length[100]'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
