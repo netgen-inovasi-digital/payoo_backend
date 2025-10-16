@@ -10,7 +10,7 @@ class OrderModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
+    protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
         'user_id',
@@ -45,7 +45,7 @@ class OrderModel extends Model
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
-    protected $deletedField  = '';
+    protected $deletedField  = 'deleted_at';
 
     // Validation
     protected $validationRules      = [
@@ -73,4 +73,24 @@ class OrderModel extends Model
     protected $afterFind      = [];
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
+
+    /**
+     * Restore a soft deleted order
+     */
+    public function restore($id)
+    {
+        return $this->update($id, [$this->deletedField => null]);
+    }
+
+    /**
+     * Permanently delete an order
+     */
+    public function forceDelete($id)
+    {
+        // Delete related order items first
+        $orderItemModel = new \App\Models\OrderItemModel();
+        $orderItemModel->where('order_id', $id)->delete();
+        
+        return $this->where($this->primaryKey, $id)->purgeDeleted();
+    }
 }
