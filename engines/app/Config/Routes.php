@@ -7,6 +7,14 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 
+// Vue.js SPA routes - serve static files and handle SPA routing
+$routes->get('app/assets/(:any)', 'VueApp::serveAsset/$1');                    // Serve JS, CSS, and other assets
+$routes->get('app/images/(:segment)/(:any)', 'VueApp::serveImage');            // Serve images with nested paths (e.g., brand/logo.png)
+$routes->get('app/images/(:any)', 'VueApp::serveImage/$1');                    // Serve images in root images folder
+$routes->get('app/favicon.ico', 'VueApp::serveFavicon');                       // Serve favicon
+$routes->get('app', 'VueApp::index');                                          // Main Vue app entry point
+$routes->get('app/(.*)', 'VueApp::catchAll');                                 // Catch all Vue routes and serve index.html
+
 // Public file serving for uploads (no auth)
 $routes->get('uploads/(:segment)', 'Upload::serve/$1'); // uploads/{filename}
 $routes->get('uploads/(:segment)/(:segment)', 'Upload::serve/$1/$2'); // uploads/{folder}/{filename}
