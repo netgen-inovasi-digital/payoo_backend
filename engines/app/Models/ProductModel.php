@@ -11,7 +11,7 @@ class ProductModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $useSoftDeletes   = false; // migration tidak menyediakan deleted_at
+    protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
         'shop_id',
@@ -44,7 +44,7 @@ class ProductModel extends Model
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
-    protected $deletedField  = '';
+    protected $deletedField  = 'deleted_at';
 
     // Validation
     protected $validationRules = [
@@ -94,8 +94,10 @@ class ProductModel extends Model
         $products = $db->query("
             SELECT 
                 p.*,
+                c.name as category_name,
                 COALESCE(stock_summary.stock_total, 0) AS stock
             FROM products p
+            LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN (
                 SELECT 
                     product_id,
@@ -103,7 +105,7 @@ class ProductModel extends Model
                 FROM stocks
                 GROUP BY product_id
             ) stock_summary ON stock_summary.product_id = p.id
-            WHERE p.shop_id = ? AND p.type = ?
+            WHERE p.shop_id = ? AND p.type = ? AND p.deleted_at IS NULL
             ORDER BY p.id DESC
         ", [$shopId, $type])->getResultArray();
 
@@ -122,18 +124,40 @@ class ProductModel extends Model
     }
 
     /**
+     * Get products with category information (including soft deleted categories)
+     */
+    public function getProductsWithCategoryByShop($shopId, $type = 'product')
+    {
+        return $this->select('
+                products.*, 
+                categories.name as category_name,
+                CASE 
+                    WHEN categories.deleted_at IS NOT NULL THEN 1 
+                    ELSE 0 
+                END as category_is_deleted
+            ')
+            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->where('products.shop_id', $shopId)
+            ->where('products.type', $type)
+            ->orderBy('products.id', 'DESC')
+            ->findAll();
+    }
+
+    /**
      * Get single product with stock and compositions (optimized)
      */
     public function getProductWithDetailsById($productId, $shopId)
     {
         $db = Database::connect();
         
-        // First get the product with stock
+        // First get the product with stock and category name (even if category is soft deleted)
         $product = $db->query("
             SELECT 
                 p.*,
+                c.name as category_name,
                 COALESCE(stock_summary.stock_total, 0) AS stock
             FROM products p
+            LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN (
                 SELECT 
                     product_id,
@@ -141,7 +165,7 @@ class ProductModel extends Model
                 FROM stocks
                 GROUP BY product_id
             ) stock_summary ON stock_summary.product_id = p.id
-            WHERE p.shop_id = ? AND p.id = ?
+            WHERE p.shop_id = ? AND p.id = ? AND p.deleted_at IS NULL
         ", [$shopId, $productId])->getRowArray();
         
         if (!$product) {
@@ -170,7 +194,7 @@ class ProductModel extends Model
                 c.selling_price,
                 c.unit
             FROM product_compositions pc
-            JOIN products c ON c.id = pc.composition_id AND c.type = 'composition'
+            JOIN products c ON c.id = pc.composition_id AND c.type = 'composition' AND c.deleted_at IS NULL
             WHERE pc.product_id = ?
             ORDER BY pc.id
         ", [$productId])->getResultArray();
@@ -189,5 +213,44 @@ class ProductModel extends Model
         $product['compositions'] = $compositions;
         
         return $product;
+    }
+
+    /**
+     * Restore a soft deleted product
+     */
+    public function restore($id)
+    {
+        return $this->update($id, [$this->deletedField => null]);
+    }
+
+    /**
+     * Permanently delete a product
+     */
+    public function forceDelete($id)
+    {
+        // Check if product is used in any orders
+        $orderItemModel = new \App\Models\OrderItemModel();
+        $count = $orderItemModel->where('product_id', $id)->countAllResults();
+        
+        if ($count > 0) {
+            throw new \Exception('Cannot permanently delete product. It is used in ' . $count . ' order(s).');
+        }
+
+        // Check if product is used as composition in other products
+        $compositionModel = new \App\Models\ProductCompositionModel();
+        $count = $compositionModel->where('composition_id', $id)->countAllResults();
+        
+        if ($count > 0) {
+            throw new \Exception('Cannot permanently delete product. It is used as composition in ' . $count . ' product(s).');
+        }
+        
+        // Delete related stocks first
+        $stockModel = new \App\Models\StockModel();
+        $stockModel->where('product_id', $id)->delete();
+        
+        // Delete related product compositions
+        $compositionModel->where('product_id', $id)->delete();
+        
+        return $this->where($this->primaryKey, $id)->purgeDeleted();
     }
 }
