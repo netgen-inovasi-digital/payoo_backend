@@ -10,7 +10,7 @@ class CategoryModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
+    protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
         'name',
@@ -33,7 +33,7 @@ class CategoryModel extends Model
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
-    protected $deletedField  = '';
+    protected $deletedField  = 'deleted_at';
 
     // Validation
     protected $validationRules      = [
@@ -57,16 +57,80 @@ class CategoryModel extends Model
     protected $afterDelete    = [];
 
     /**
-     * Check if category is used by products before delete
+     * Restore a soft deleted category
+     */
+    public function restore($id)
+    {
+        return $this->update($id, [$this->deletedField => null]);
+    }
+
+    /**
+     * Permanently delete a category
+     */
+    public function forceDelete($id)
+    {
+        // Check if category has any products (including deleted ones)
+        $productModel = new \App\Models\ProductModel();
+        $count = $productModel->withDeleted()->where('category_id', $id)->countAllResults();
+        
+        if ($count > 0) {
+            throw new \Exception('Cannot permanently delete category. It has ' . $count . ' product(s) associated with it.');
+        }
+        
+        return $this->where($this->primaryKey, $id)->purgeDeleted();
+    }
+
+    /**
+     * Safe delete with product handling
+     * This method will set category_id to NULL for all products using this category
+     */
+    public function safeDelete($id)
+    {
+        // First, set category_id to NULL for all products using this category
+        $productModel = new \App\Models\ProductModel();
+        $productModel->where('category_id', $id)->set(['category_id' => null])->update();
+        
+        // Then proceed with normal delete (soft delete)
+        return $this->delete($id);
+    }
+
+    /**
+     * Get categories with product count (including soft deleted products)
+     */
+    public function getCategoriesWithProductCount($shopId)
+    {
+        $db = \Config\Database::connect();
+        
+        return $db->query("
+            SELECT 
+                c.*,
+                COUNT(p.id) as total_products,
+                COUNT(CASE WHEN p.deleted_at IS NULL THEN 1 END) as active_products,
+                COUNT(CASE WHEN p.deleted_at IS NOT NULL THEN 1 END) as deleted_products
+            FROM categories c
+            LEFT JOIN products p ON p.category_id = c.id
+            WHERE c.shop_id = ? AND c.deleted_at IS NULL
+            GROUP BY c.id
+            ORDER BY c.id DESC
+        ", [$shopId])->getResultArray();
+    }
+
+    /**
+     * Check if category is used by active products before soft delete
+     * We allow soft delete even if products exist, but warn about it
      */
     protected function checkCategoryUsage(array $data)
     {
         if (isset($data['id'])) {
             $productModel = new \App\Models\ProductModel();
-            $count = $productModel->where('category_id', $data['id'][0])->countAllResults();
+            // Only check active products (not soft deleted)
+            $count = $productModel->where('category_id', $data['id'][0])
+                                  ->where('deleted_at', null)
+                                  ->countAllResults();
             
+            // Log warning but allow soft delete
             if ($count > 0) {
-                throw new \Exception('Cannot delete category. It is being used by ' . $count . ' product(s).');
+                log_message('info', "Category {$data['id'][0]} is being soft deleted but is still used by {$count} active product(s).");
             }
         }
         return $data;

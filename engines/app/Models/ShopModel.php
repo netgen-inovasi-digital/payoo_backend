@@ -10,7 +10,7 @@ class ShopModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
+    protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
         'user_id',
@@ -40,7 +40,7 @@ class ShopModel extends Model
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
-    protected $deletedField  = '';
+    protected $deletedField  = 'deleted_at';
 
     // Validation
     protected $validationRules      = [
@@ -68,4 +68,44 @@ class ShopModel extends Model
     protected $afterFind      = [];
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
+
+    /**
+     * Restore a soft deleted shop
+     */
+    public function restore($id)
+    {
+        return $this->update($id, [$this->deletedField => null]);
+    }
+
+    /**
+     * Permanently delete a shop (use with caution)
+     */
+    public function forceDelete($id)
+    {
+        // Check if shop has any orders
+        $orderModel = new \App\Models\OrderModel();
+        $count = $orderModel->withDeleted()->where('shop_id', $id)->countAllResults();
+        
+        if ($count > 0) {
+            throw new \Exception('Cannot permanently delete shop. It has ' . $count . ' order(s) associated with it.');
+        }
+
+        // Check if shop has any products
+        $productModel = new \App\Models\ProductModel();
+        $count = $productModel->withDeleted()->where('shop_id', $id)->countAllResults();
+        
+        if ($count > 0) {
+            throw new \Exception('Cannot permanently delete shop. It has ' . $count . ' product(s) associated with it.');
+        }
+
+        // Check if shop has any categories
+        $categoryModel = new \App\Models\CategoryModel();
+        $count = $categoryModel->withDeleted()->where('shop_id', $id)->countAllResults();
+        
+        if ($count > 0) {
+            throw new \Exception('Cannot permanently delete shop. It has ' . $count . ' category(ies) associated with it.');
+        }
+        
+        return $this->where($this->primaryKey, $id)->purgeDeleted();
+    }
 }
