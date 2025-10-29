@@ -92,7 +92,8 @@ class StockModel extends Model
     {
         $builder = $this->select('stocks.*, products.name as product_name, products.type as product_type')
                        ->join('products', 'products.id = stocks.product_id')
-                       ->where('products.shop_id', $shopId);
+                       ->where('products.shop_id', $shopId)
+                       ->where('products.deleted_at IS NULL'); // Apply soft delete filter
         
         // Apply type filter if provided
         if ($typeFilter) {
@@ -123,7 +124,7 @@ class StockModel extends Model
         $db = Database::connect();
         
         // Build WHERE conditions dynamically
-        $whereConditions = ['p.shop_id = ?'];
+        $whereConditions = ['p.shop_id = ?', 'p.deleted_at IS NULL'];
         $params = [$shopId];
         
         // Apply filters dynamically

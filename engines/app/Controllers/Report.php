@@ -31,8 +31,9 @@ class Report extends BaseController
             return api_respond_validation_error(['period' => 'Invalid period (today, this_week, this_month)']);
         }
 
-        // Hitung range waktu
-        $now = new \DateTime('now');
+        // Hitung range waktu dengan zona waktu WITA (UTC+08:00)
+        $timezone = new \DateTimeZone('Asia/Makassar'); // UTC+08:00 (WITA)
+        $now = new \DateTime('now', $timezone);
         $start = clone $now;
         switch ($period) {
             case 'today':
@@ -89,8 +90,9 @@ class Report extends BaseController
             return api_respond_validation_error(['period' => 'Invalid period (today, this_week, this_month)']);
         }
 
-        // Hitung range waktu
-        $now = new \DateTime('now');
+        // Hitung range waktu dengan zona waktu WITA (UTC+08:00)
+        $timezone = new \DateTimeZone('Asia/Makassar'); // UTC+08:00 (WITA)
+        $now = new \DateTime('now', $timezone);
         $start = clone $now;
         switch ($period) {
             case 'today':

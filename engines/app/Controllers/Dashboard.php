@@ -24,8 +24,9 @@ class Dashboard extends BaseController
             return api_respond_validation_error(['shop_id' => 'No shop assigned']);
         }
 
-        // Always use today period
-        $now = new \DateTime('now');
+        // Always use today period dengan zona waktu WITA (UTC+08:00)
+        $timezone = new \DateTimeZone('Asia/Makassar'); // UTC+08:00 (WITA)
+        $now = new \DateTime('now', $timezone);
         $start = clone $now;
         $start->setTime(0, 0, 0); // Start of today (00:00:00)
         $end = clone $now; // Current time
@@ -71,8 +72,12 @@ class Dashboard extends BaseController
         }
 
         $db = Database::connect();
-        $currentYear = date('Y');
-        $currentMonth = date('n');
+        
+        // Gunakan timezone WITA untuk konsistensi
+        $timezone = new \DateTimeZone('Asia/Makassar'); // UTC+08:00 (WITA)
+        $now = new \DateTime('now', $timezone);
+        $currentYear = (int)$now->format('Y');
+        $currentMonth = (int)$now->format('n');
         $lastMonth = $currentMonth == 1 ? 12 : $currentMonth - 1;
         $lastMonthYear = $currentMonth == 1 ? $currentYear - 1 : $currentYear;
 
