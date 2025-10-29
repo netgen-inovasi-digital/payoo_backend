@@ -242,6 +242,7 @@ class StockModel extends Model
         $db = Database::connect();
         
         // Single optimized query with LEFT JOIN to get products and stock in one go
+        // Added soft delete filter: p.deleted_at IS NULL
         $products = $db->query("
             SELECT 
                 p.*,
@@ -254,7 +255,7 @@ class StockModel extends Model
                 FROM stocks
                 GROUP BY product_id
             ) stock_summary ON stock_summary.product_id = p.id
-            WHERE p.shop_id = ?
+            WHERE p.shop_id = ? AND p.deleted_at IS NULL
             ORDER BY p.id DESC
         ", [$shopId])->getResultArray();
 
