@@ -46,6 +46,8 @@ class Order extends BaseController
             'change_money' => $json->total ? (($json->amount_paid ?? 0) - $json->total) : 0,
             'tax'         => $json->tax ?? 0,
             'payment_method' => $json->payment_method ?? 'cash',
+            'created_at'  => $json->created_at ?? date('Y-m-d H:i:s'),
+            'updated_at'  => $json->created_at ?? date('Y-m-d H:i:s'),
         ];
         $orderItems = $json->order_items ?? [];
         if (!$this->model->validate($data)) {
