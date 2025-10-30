@@ -36,6 +36,11 @@ class Order extends BaseController
         if (!$userId) {
             return api_respond_validation_error(['user_id' => 'User not found in token']);
         }
+        // Gunakan timezone WITA untuk konsistensi
+        $timezone = new \DateTimeZone('Asia/Makassar'); // UTC+08:00 (WITA)
+        $now = new \DateTime('now', $timezone);
+        $currentDateTime = $now->format('Y-m-d H:i:s');
+        
         $data = [
             'user_id'     => (int) $userId,
             'shop_id'     => (int) $shopId,
@@ -46,8 +51,8 @@ class Order extends BaseController
             'change_money' => $json->total ? (($json->amount_paid ?? 0) - $json->total) : 0,
             'tax'         => $json->tax ?? 0,
             'payment_method' => $json->payment_method ?? 'cash',
-            'created_at'  => $json->created_at ?? date('Y-m-d H:i:s'),
-            'updated_at'  => $json->created_at ?? date('Y-m-d H:i:s'),
+            'created_at'  => $json->created_at ?? $currentDateTime,
+            'updated_at'  => $json->created_at ?? $currentDateTime,
         ];
         $orderItems = $json->order_items ?? [];
         if (!$this->model->validate($data)) {
@@ -136,7 +141,7 @@ class Order extends BaseController
                         'quantity'   => $outQty,
                         'type'       => 'out',
                         'notes'      => 'Order #' . $orderId . ' (BOM)',
-                        'date'       => date('Y-m-d H:i:s'),
+                        'date'       => $currentDateTime,
                     ];
 
                     if (!$stockModel->validate($stockData)) {
@@ -156,7 +161,7 @@ class Order extends BaseController
                     'quantity'   => $itemQty,
                     'type'       => 'out',
                     'notes'      => 'Order #' . $orderId . ' (Direct)',
-                    'date'       => date('Y-m-d H:i:s'),
+                    'date'       => $currentDateTime,
                 ];
 
                 if (!$stockModel->validate($stockData)) {
