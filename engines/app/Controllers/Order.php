@@ -141,7 +141,7 @@ class Order extends BaseController
                         'quantity'   => $outQty,
                         'type'       => 'out',
                         'notes'      => 'Order #' . $orderId . ' (BOM)',
-                        'date'       => $currentDateTime,
+                        'date'       => $json->created_at ?? $currentDateTime,
                     ];
 
                     if (!$stockModel->validate($stockData)) {
@@ -161,7 +161,7 @@ class Order extends BaseController
                     'quantity'   => $itemQty,
                     'type'       => 'out',
                     'notes'      => 'Order #' . $orderId . ' (Direct)',
-                    'date'       => $currentDateTime,
+                    'date'       => $json->created_at ?? $currentDateTime,
                 ];
 
                 if (!$stockModel->validate($stockData)) {
