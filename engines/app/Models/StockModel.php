@@ -223,12 +223,17 @@ class StockModel extends Model
      */
     public function addStockOut($productId, $quantity, $notes = null)
     {
+        // Gunakan timezone WITA untuk konsistensi
+        $timezone = new \DateTimeZone('Asia/Makassar'); // UTC+08:00 (WITA)
+        $now = new \DateTime('now', $timezone);
+        $currentDateTime = $now->format('Y-m-d H:i:s');
+
         $data = [
             'product_id' => $productId,
             'quantity'   => $quantity,
             'type'       => 'out',
             'notes'      => $notes,
-            'date'       => date('Y-m-d H:i:s')
+            'date'       => $currentDateTime
         ];
 
         return $this->insert($data);
