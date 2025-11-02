@@ -142,8 +142,8 @@ class Report extends BaseController
     }
 
     /**
-     * GET /api/reports/{shop_id}/ordersv2?range_start=DD-MM-YYYY&range_end=DD-MM-YYYY&status=pending&limit=20&offset=0
-     * Get orders with custom date range filter
+     * GET /api/reports/{shop_id}/ordersv2?range_start=DD-MM-YYYY&range_end=DD-MM-YYYY
+     * Get orders with custom date range filter (without pagination)
      */
     public function ordersv2($shopId = null)
     {
@@ -162,16 +162,6 @@ class Report extends BaseController
         // Get parameters
         $rangeStart = $this->request->getGet('range_start'); // Format: DD-MM-YYYY
         $rangeEnd = $this->request->getGet('range_end');     // Format: DD-MM-YYYY
-        $limit = (int)($this->request->getGet('limit') ?? 20);
-        $offset = (int)($this->request->getGet('offset') ?? 0);
-
-        // Validasi limit dan offset
-        if ($limit < 1 || $limit > 100) {
-            $limit = 20;
-        }
-        if ($offset < 0) {
-            $offset = 0;
-        }
 
         // Setup timezone WITA
         $timezone = new \DateTimeZone('Asia/Makassar'); // UTC+08:00 (WITA)
@@ -219,17 +209,8 @@ class Report extends BaseController
         }
 
         $db = Database::connect();
-        
-        // Query untuk mendapatkan total count
-        $countBuilder = $db->table('orders o');
-        $countBuilder->select('COUNT(*) as total_count');
-        $countBuilder->where('o.shop_id', $shopId);
-        $countBuilder->where('o.created_at >=', $start->format('Y-m-d H:i:s'));
-        $countBuilder->where('o.created_at <=', $end->format('Y-m-d H:i:s'));
-        
-        $totalCount = (int)$countBuilder->get()->getRowArray()['total_count'];
 
-        // Query untuk mendapatkan data orders dengan pagination
+        // Query untuk mendapatkan semua orders tanpa pagination
         $builder = $db->table('orders o');
         $builder->select('o.*, COALESCE(SUM(oi.quantity), 0) as total_items');
         $builder->join('order_items oi', 'oi.order_id = o.id', 'left');
@@ -239,27 +220,22 @@ class Report extends BaseController
 
         $builder->groupBy('o.id');
         $builder->orderBy('o.created_at', 'DESC');
-        $builder->limit($limit, $offset);
 
         $orders = $builder->get()->getResultArray();
 
-        // Calculate pagination info
-        $totalPages = ceil($totalCount / $limit);
-        $currentPage = floor($offset / $limit) + 1;
-
-        // Filter untuk meta
-        $appliedFilters = [];
-        if ($rangeStart) $appliedFilters['range_start'] = $rangeStart;
-        if ($rangeEnd) $appliedFilters['range_end'] = $rangeEnd;
-
-        return api_respond_success($orders, 'Orders retrieved successfully', 200, [
-            'pagination' => [
-                'current_page' => $currentPage,
-                'per_page' => $limit,
-                'total' => $totalCount,
-                'total_pages' => $totalPages
+        $data = [
+            'orders' => $orders,
+            'total_orders' => count($orders),
+            'filters' => [
+                'range_start' => $rangeStart ?? $start->format('d-m-Y'),
+                'range_end' => $rangeEnd ?? $end->format('d-m-Y'),
             ],
-            'filters' => $appliedFilters,
-        ]);
+            'date_range' => [
+                'start' => $start->format('Y-m-d H:i:s'),
+                'end' => $end->format('Y-m-d H:i:s')
+            ]
+        ];
+
+        return api_respond_success($data, 'Orders retrieved successfully');
     }
 }

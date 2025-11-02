@@ -43,7 +43,7 @@ $routes->group('api', ['namespace' => 'App\Controllers', 'filter' => 'bearerAuth
     // Reports
     $routes->get('reports/(:segment)/summary', 'Report::summary/$1'); // GET /api/reports/{shop_id}/summary?period=
     $routes->get('reports/(:segment)/orders', 'Report::orders/$1');   // GET /api/reports/{shop_id}/orders?period=&status=&limit=&offset=
-    $routes->get('reports/(:segment)/ordersv2', 'Report::ordersv2/$1'); // GET /api/reports/{shop_id}/ordersv2?range_start=DD-MM-YYYY&range_end=DD-MM-YYYY&status=&limit=&offset=
+    $routes->get('reports/(:segment)/ordersv2', 'Report::ordersv2/$1'); // GET /api/reports/{shop_id}/ordersv2?range_start=DD-MM-YYYY&range_end=DD-MM-YYYY
 
     // Routes untuk Produk
     // $routes->get('produk', 'Produk::index');       // GET /api/produk
