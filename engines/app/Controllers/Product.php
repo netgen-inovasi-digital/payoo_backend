@@ -7,6 +7,7 @@ use App\Models\ProductModel;
 use App\Models\ShopModel;
 use App\Models\CategoryModel;
 use App\Models\ProductCompositionModel;
+use App\Models\StockModel;
 use App\Models\CompositionModel;
 use Config\Database;
 
@@ -14,11 +15,13 @@ class Product extends BaseController
 {
     protected ProductModel $model;
     protected ProductCompositionModel $productCompositionModel;
+    protected StockModel $stockModel;
 
     public function __construct()
     {
         $this->model = new ProductModel();
         $this->productCompositionModel = new ProductCompositionModel();
+        $this->stockModel = new StockModel();
     }
 
     // GET /api/products
@@ -32,10 +35,10 @@ class Product extends BaseController
         if (!$shopId) {
             return api_respond_success([], 'No shop assigned');
         }
-        
+
         // Use optimized method from ProductModel
         $products = $this->model->getProductsWithStockByShop($shopId, 'product');
-        
+
         return api_respond_success($products, 'Product list');
     }
 
@@ -50,14 +53,14 @@ class Product extends BaseController
             return api_respond_unauthorized('Invalid token');
         }
         $shopId = $payload->shop_id ?? null;
-        
+
         // Use optimized method from ProductModel
         $product = $this->model->getProductWithDetailsById($id, $shopId);
-        
+
         if (!$product) {
             return api_respond_not_found('Product not found');
         }
-        
+
         return api_respond_success($product, 'Product detail');
     }
 
@@ -90,6 +93,15 @@ class Product extends BaseController
             'selling_price' => $json->selling_price ?? null,
         ];
 
+        // Optional initial stock
+        $initialStock = null;
+        if (isset($json->stock) && $json->stock !== '') {
+            if (!is_numeric($json->stock) || (int)$json->stock < 0) {
+                return api_respond_validation_error(['stock' => 'Stock must be a non-negative integer']);
+            }
+            $initialStock = (int)$json->stock;
+        }
+
         if (!$this->model->validate($data)) {
             return api_respond_validation_error($this->model->errors());
         }
@@ -108,18 +120,18 @@ class Product extends BaseController
             if (!is_array($compositions)) {
                 return api_respond_validation_error(['compositions' => 'Compositions must be an array']);
             }
-            
+
             $compositionModel = new CompositionModel();
             foreach ($compositions as $composition) {
                 // Normalisasi: jika stdClass ubah ke array
                 if (is_object($composition)) {
                     $composition = (array)$composition;
                 }
-                
+
                 // Composition bisa berupa ID saja (backward compatibility) atau object dengan quantity
                 $compositionId = is_array($composition) ? ($composition['composition_id'] ?? null) : $composition;
                 $quantity = is_array($composition) ? ($composition['quantity'] ?? 1) : 1;
-                
+
                 if (!is_numeric($compositionId)) {
                     return api_respond_validation_error(['compositions' => 'All composition IDs must be numeric']);
                 }
@@ -149,11 +161,11 @@ class Product extends BaseController
                 if (is_object($composition)) {
                     $composition = (array)$composition;
                 }
-                
+
                 // Composition bisa berupa ID saja atau object dengan quantity
                 $compositionId = is_array($composition) ? ($composition['composition_id'] ?? null) : $composition;
                 $quantity = is_array($composition) ? ($composition['quantity'] ?? 1) : 1;
-                
+
                 $compositionData = [
                     'product_id'     => $productId,
                     'composition_id' => (int) $compositionId,
@@ -166,6 +178,14 @@ class Product extends BaseController
             }
         }
 
+        // Insert initial stock movement if provided and > 0
+        if ($initialStock !== null && $initialStock > 0) {
+            if (!$this->stockModel->addStockIn($productId, $initialStock, $data['cost_price'] ?? null, 'Initial stock')) {
+                $db->transRollback();
+                return api_respond_server_error('Failed to record initial stock');
+            }
+        }
+
         $db->transComplete();
 
         if ($db->transStatus() === false) {
@@ -173,8 +193,10 @@ class Product extends BaseController
         }
 
         $created = $this->model->find($productId);
+        // Get current stock via StockModel (sum of movements)
+        $created['stock'] = $this->stockModel->getCurrentStock($productId);
         $created['compositions'] = $this->productCompositionModel->getCompositionsByProduct($productId);
-        
+
         return api_respond_created($created, 'Product created');
     }
 
@@ -211,6 +233,15 @@ class Product extends BaseController
             'selling_price' => isset($json->selling_price) ? $json->selling_price : $existing['selling_price'],
         ];
 
+        // Optional stock adjustment (absolute target stock)
+        $targetStock = null;
+        if (isset($json->stock) && $json->stock !== '') {
+            if (!is_numeric($json->stock) || (int)$json->stock < 0) {
+                return api_respond_validation_error(['stock' => 'Stock must be a non-negative integer']);
+            }
+            $targetStock = (int)$json->stock;
+        }
+
         if (!$this->model->validate($data)) {
             return api_respond_validation_error($this->model->errors());
         }
@@ -228,18 +259,18 @@ class Product extends BaseController
             if (!is_array($compositions)) {
                 return api_respond_validation_error(['compositions' => 'Compositions must be an array']);
             }
-            
+
             $compositionModel = new CompositionModel();
             foreach ($compositions as $composition) {
                 // Normalisasi: jika stdClass ubah ke array
                 if (is_object($composition)) {
                     $composition = (array)$composition;
                 }
-                
+
                 // Composition bisa berupa ID saja (backward compatibility) atau object dengan quantity
                 $compositionId = is_array($composition) ? ($composition['composition_id'] ?? null) : $composition;
                 $quantity = is_array($composition) ? ($composition['quantity'] ?? 1) : 1;
-                
+
                 if (!is_numeric($compositionId)) {
                     return api_respond_validation_error(['compositions' => 'All composition IDs must be numeric']);
                 }
@@ -260,22 +291,42 @@ class Product extends BaseController
             return api_respond_server_error('Failed to update product');
         }
 
+        // Adjust stock if requested
+        if ($targetStock !== null) {
+            $currentStock = $this->stockModel->getCurrentStock($id);
+            $diff = $targetStock - $currentStock;
+            if ($diff !== 0) {
+                if ($diff > 0) {
+                    if (!$this->stockModel->addStockIn($id, $diff, $data['cost_price'] ?? null, 'Stock adjustment (increase)')) {
+                        $db->transRollback();
+                        return api_respond_server_error('Failed to adjust stock (increase)');
+                    }
+                } else { // diff < 0
+                    // Convert to positive quantity for out movement
+                    if (!$this->stockModel->addStockOut($id, abs($diff), 'Stock adjustment (decrease)')) {
+                        $db->transRollback();
+                        return api_respond_server_error('Failed to adjust stock (decrease)');
+                    }
+                }
+            }
+        }
+
         // Update compositions jika disediakan
         if ($compositions !== null) {
             // Hapus semua compositions lama
             $this->productCompositionModel->deleteByProduct($id);
-            
+
             // Insert compositions baru
             foreach ($compositions as $composition) {
                 // Normalisasi: jika stdClass ubah ke array
                 if (is_object($composition)) {
                     $composition = (array)$composition;
                 }
-                
+
                 // Composition bisa berupa ID saja atau object dengan quantity
                 $compositionId = is_array($composition) ? ($composition['composition_id'] ?? null) : $composition;
                 $quantity = is_array($composition) ? ($composition['quantity'] ?? 1) : 1;
-                
+
                 $compositionData = [
                     'product_id'     => $id,
                     'composition_id' => (int) $compositionId,
@@ -295,8 +346,9 @@ class Product extends BaseController
         }
 
         $updated = $this->model->find($id);
+        $updated['stock'] = $this->stockModel->getCurrentStock($id);
         $updated['compositions'] = $this->productCompositionModel->getCompositionsByProduct($id);
-        
+
         return api_respond_success($updated, 'Product updated');
     }
 
@@ -363,7 +415,7 @@ class Product extends BaseController
 
         // Support untuk single composition atau array of compositions
         $compositionsToAdd = [];
-        
+
         // Jika ada composition_id, berarti format single composition (backward compatibility)
         if (isset($json->composition_id)) {
             $compositionsToAdd[] = [
@@ -376,7 +428,7 @@ class Product extends BaseController
             if (!is_array($json->compositions)) {
                 return api_respond_validation_error(['compositions' => 'Compositions must be an array']);
             }
-            
+
             foreach ($json->compositions as $item) {
                 // Normalisasi: jika stdClass ubah ke array
                 if (is_object($item)) {
@@ -417,7 +469,7 @@ class Product extends BaseController
         foreach ($compositionsToAdd as $compositionData) {
             $compositionId = $compositionData['composition_id'];
             $quantity = $compositionData['quantity'];
-            
+
             if (is_object($compositionId)) { // safeguard kalau masih object
                 return api_respond_validation_error(['composition_id' => 'Invalid composition ID format']);
             }
@@ -566,7 +618,7 @@ class Product extends BaseController
             if (!$this->isValidId($compositionId)) {
                 return api_respond_validation_error(['composition_id' => 'Invalid composition id']);
             }
-            
+
             $quantity = $json->quantity ?? null;
             if (!is_numeric($quantity) || $quantity <= 0) {
                 return api_respond_validation_error(['quantity' => 'Quantity must be numeric and greater than 0']);
