@@ -73,15 +73,20 @@ class StockModel extends Model
     protected $afterDelete    = [];
 
     /**
-     * Get current stock for a product
+     * Get current stock for a product (net: in - out)
      */
     public function getCurrentStock($productId)
     {
-        $result = $this->selectSum('quantity')
-                      ->where('product_id', $productId)
-                      ->first();
-        
-        return $result['quantity'] ?? 0;
+        // Use raw query to calculate net stock and avoid null casting error
+        $db = Database::connect();
+        $row = $db->query(
+            "SELECT COALESCE(SUM(CASE WHEN type = 'in' THEN quantity ELSE -quantity END), 0) AS stock
+             FROM stocks
+             WHERE product_id = ?",
+            [$productId]
+        )->getRowArray();
+
+        return (int)($row['stock'] ?? 0);
     }
 
     

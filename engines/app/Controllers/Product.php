@@ -291,18 +291,19 @@ class Product extends BaseController
             return api_respond_server_error('Failed to update product');
         }
 
-        // Adjust stock if requested
+        // Adjust stock if requested (absolute target stock)
         if ($targetStock !== null) {
             $currentStock = $this->stockModel->getCurrentStock($id);
             $diff = $targetStock - $currentStock;
             if ($diff !== 0) {
                 if ($diff > 0) {
+                    // Target lebih besar dari current: tambah stock in
                     if (!$this->stockModel->addStockIn($id, $diff, $data['cost_price'] ?? null, 'Stock adjustment (increase)')) {
                         $db->transRollback();
                         return api_respond_server_error('Failed to adjust stock (increase)');
                     }
-                } else { // diff < 0
-                    // Convert to positive quantity for out movement
+                } else {
+                    // Target lebih kecil dari current: tambah stock out
                     if (!$this->stockModel->addStockOut($id, abs($diff), 'Stock adjustment (decrease)')) {
                         $db->transRollback();
                         return api_respond_server_error('Failed to adjust stock (decrease)');
