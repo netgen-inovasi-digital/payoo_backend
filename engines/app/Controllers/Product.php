@@ -194,7 +194,7 @@ class Product extends BaseController
 
         $created = $this->model->find($productId);
         // Get current stock via StockModel (sum of movements)
-        $created['stock'] = $this->stockModel->getCurrentStock($productId);
+        // $created['stock'] = $this->stockModel->getCurrentStock($productId);
         $created['compositions'] = $this->productCompositionModel->getCompositionsByProduct($productId);
 
         return api_respond_created($created, 'Product created');
