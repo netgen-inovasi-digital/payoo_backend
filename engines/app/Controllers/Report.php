@@ -348,20 +348,26 @@ class Report extends BaseController
             $order['items'] = $items;
             $order['total_items'] = count($items);
             
-            // Convert order fields to proper types
+            // Convert order fields to proper types with fallback values
             $order['id'] = (int) $order['id'];
             $order['shop_id'] = (int) $order['shop_id'];
-            $order['subtotal'] = (float) $order['subtotal'];
-            $order['discount'] = (float) $order['discount'];
-            $order['tax'] = (float) $order['tax'];
-            $order['total'] = (float) $order['total'];
+            $order['subtotal'] = (float) ($order['subtotal'] ?? 0);
+            $order['discount'] = (float) ($order['discount'] ?? 0);
+            $order['tax'] = (float) ($order['tax'] ?? 0);
+            $order['total'] = (float) ($order['total'] ?? 0);
         }
         unset($order);
 
-        // Calculate summary
-        $totalRevenue = array_sum(array_column($orders, 'total'));
-        $totalDiscount = array_sum(array_column($orders, 'discount'));
-        $totalTax = array_sum(array_column($orders, 'tax'));
+        // Calculate summary with safe array operations
+        $totalRevenue = 0;
+        $totalDiscount = 0;
+        $totalTax = 0;
+        
+        foreach ($orders as $order) {
+            $totalRevenue += (float) ($order['total'] ?? 0);
+            $totalDiscount += (float) ($order['discount'] ?? 0);
+            $totalTax += (float) ($order['tax'] ?? 0);
+        }
 
         $data = [
             'orders' => $orders,
