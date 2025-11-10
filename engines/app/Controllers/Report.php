@@ -334,14 +334,14 @@ class Report extends BaseController
             
             $items = $itemsBuilder->get()->getResultArray();
             
-            // Convert fields to proper types
+            // Convert fields to proper types with fallback values
             foreach ($items as &$item) {
-                $item['id'] = (int) $item['id'];
-                $item['order_id'] = (int) $item['order_id'];
-                $item['product_id'] = (int) $item['product_id'];
-                $item['quantity'] = (int) $item['quantity'];
-                $item['price'] = (float) $item['price'];
-                $item['subtotal'] = (float) $item['subtotal'];
+                $item['id'] = (int) ($item['id'] ?? 0);
+                $item['order_id'] = (int) ($item['order_id'] ?? 0);
+                $item['product_id'] = (int) ($item['product_id'] ?? 0);
+                $item['quantity'] = (int) ($item['quantity'] ?? 0);
+                $item['price'] = (float) ($item['price'] ?? 0);
+                $item['subtotal'] = (float) ($item['subtotal'] ?? 0);
             }
             unset($item);
             
