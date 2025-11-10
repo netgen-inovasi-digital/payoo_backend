@@ -238,4 +238,149 @@ class Report extends BaseController
 
         return api_respond_success($data, 'Orders retrieved successfully');
     }
+
+    /**
+     * GET /api/reports/{shop_id}/print?range_start=DD-MM-YYYY&range_end=DD-MM-YYYY
+     * Get orders with complete detail for printing (order items included)
+     */
+    public function print($shopId = null)
+    {
+        // Validasi shop id
+        if (!$this->isValidId($shopId)) {
+            return api_respond_validation_error(['shop_id' => 'Invalid shop id']);
+        }
+
+        // Auth & otorisasi
+        $payload = $this->decodeToken();
+        if (!$payload) return api_respond_unauthorized('Invalid token');
+        if (($payload->shop_id ?? null) != $shopId) {
+            return api_respond_forbidden('Access denied');
+        }
+
+        // Get parameters
+        $rangeStart = $this->request->getGet('range_start'); // Format: DD-MM-YYYY
+        $rangeEnd = $this->request->getGet('range_end');     // Format: DD-MM-YYYY
+
+        // Setup timezone WITA
+        $timezone = new \DateTimeZone('Asia/Makassar'); // UTC+08:00 (WITA)
+        
+        // Parse dan validasi tanggal
+        try {
+            if ($rangeStart) {
+                $start = \DateTime::createFromFormat('d-m-Y', $rangeStart, $timezone);
+                if (!$start) {
+                    return api_respond_validation_error(['range_start' => 'Invalid date format. Use DD-MM-YYYY']);
+                }
+                $start->setTime(0, 0, 0); // Set to start of day
+            } else {
+                // Default: today
+                $start = new \DateTime('now', $timezone);
+                $start->setTime(0, 0, 0);
+            }
+
+            if ($rangeEnd) {
+                $end = \DateTime::createFromFormat('d-m-Y', $rangeEnd, $timezone);
+                if (!$end) {
+                    return api_respond_validation_error(['range_end' => 'Invalid date format. Use DD-MM-YYYY']);
+                }
+                $end->setTime(23, 59, 59); // Set to end of day
+            } else {
+                // Default: today
+                $end = new \DateTime('now', $timezone);
+                $end->setTime(23, 59, 59);
+            }
+
+            // Validasi range
+            if ($start > $end) {
+                return api_respond_validation_error(['date_range' => 'Start date cannot be later than end date']);
+            }
+
+            // Maksimal range 1 tahun
+            $maxDays = 365;
+            $daysDiff = $end->diff($start)->days;
+            if ($daysDiff > $maxDays) {
+                return api_respond_validation_error(['date_range' => 'Date range cannot exceed 365 days']);
+            }
+
+        } catch (\Exception $e) {
+            return api_respond_validation_error(['date_range' => 'Invalid date format']);
+        }
+
+        $db = Database::connect();
+
+        // Query untuk mendapatkan semua orders
+        $builder = $db->table('orders o');
+        $builder->select('o.*');
+        $builder->where('o.shop_id', $shopId);
+        $builder->where('o.created_at >=', $start->format('Y-m-d H:i:s'));
+        $builder->where('o.created_at <=', $end->format('Y-m-d H:i:s'));
+        $builder->orderBy('o.created_at', 'DESC');
+
+        $orders = $builder->get()->getResultArray();
+
+        // Ambil order items untuk setiap order dengan detail produk
+        foreach ($orders as &$order) {
+            $itemsBuilder = $db->table('order_items oi');
+            $itemsBuilder->select('
+                oi.*,
+                p.name as product_name,
+                p.photo as product_photo,
+                p.unit as product_unit,
+                p.type as product_type
+            ');
+            $itemsBuilder->join('products p', 'p.id = oi.product_id', 'left');
+            $itemsBuilder->where('oi.order_id', $order['id']);
+            $itemsBuilder->orderBy('oi.id', 'ASC');
+            
+            $items = $itemsBuilder->get()->getResultArray();
+            
+            // Convert fields to proper types
+            foreach ($items as &$item) {
+                $item['id'] = (int) $item['id'];
+                $item['order_id'] = (int) $item['order_id'];
+                $item['product_id'] = (int) $item['product_id'];
+                $item['quantity'] = (int) $item['quantity'];
+                $item['price'] = (float) $item['price'];
+                $item['subtotal'] = (float) $item['subtotal'];
+            }
+            unset($item);
+            
+            $order['items'] = $items;
+            $order['total_items'] = count($items);
+            
+            // Convert order fields to proper types
+            $order['id'] = (int) $order['id'];
+            $order['shop_id'] = (int) $order['shop_id'];
+            $order['subtotal'] = (float) $order['subtotal'];
+            $order['discount'] = (float) $order['discount'];
+            $order['tax'] = (float) $order['tax'];
+            $order['total'] = (float) $order['total'];
+        }
+        unset($order);
+
+        // Calculate summary
+        $totalRevenue = array_sum(array_column($orders, 'total'));
+        $totalDiscount = array_sum(array_column($orders, 'discount'));
+        $totalTax = array_sum(array_column($orders, 'tax'));
+
+        $data = [
+            'orders' => $orders,
+            'summary' => [
+                'total_orders' => count($orders),
+                'total_revenue' => $totalRevenue,
+                'total_discount' => $totalDiscount,
+                'total_tax' => $totalTax,
+            ],
+            'filters' => [
+                'range_start' => $rangeStart ?? $start->format('d-m-Y'),
+                'range_end' => $rangeEnd ?? $end->format('d-m-Y'),
+            ],
+            'date_range' => [
+                'start' => $start->format('Y-m-d H:i:s'),
+                'end' => $end->format('Y-m-d H:i:s')
+            ]
+        ];
+
+        return api_respond_success($data, 'Orders with details retrieved successfully for printing');
+    }
 }
