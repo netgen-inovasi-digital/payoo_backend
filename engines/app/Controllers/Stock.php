@@ -78,8 +78,33 @@ class Stock extends BaseController
             return api_respond_validation_error(['product_id' => 'Product not found in your shop']);
         }
         
+        // Insert stock movement first
         if (!$this->model->insert($data)) {
             return api_respond_server_error('Failed to create stock record');
+        }
+        
+        // Update product cost_price using weighted average if type is 'in' and buy_price is provided
+        if ($data['type'] === 'in' && isset($data['buy_price']) && $data['buy_price'] > 0) {
+            // Get current stock before this transaction
+            $currentStock = $this->model->getCurrentStock($data['product_id']) - $data['quantity'];
+            $currentCostPrice = (float) $product['cost_price'];
+            $newQuantity = $data['quantity'];
+            $newBuyPrice = (float) $data['buy_price'];
+            
+            // Calculate weighted average cost
+            // Avoid division by zero: if current stock is 0, just use new buy price
+            if ($currentStock <= 0) {
+                $newCostPrice = $newBuyPrice;
+            } else {
+                $totalValue = ($currentStock * $currentCostPrice) + ($newQuantity * $newBuyPrice);
+                $totalQuantity = $currentStock + $newQuantity;
+                $newCostPrice = $totalValue / $totalQuantity;
+            }
+            
+            // Update product cost_price
+            $productModel->update($data['product_id'], [
+                'cost_price' => $newCostPrice
+            ]);
         }
         
         $created = $this->model->find($this->model->getInsertID());
